@@ -141,6 +141,14 @@ const JobStatusScreen = ({ route, navigation }) => {
     // }
   };
 
+  const onMessage = () => {
+    navigation.navigate("Message", {
+      otherUserId: user.id,
+      otherUserName: user.name,
+      otherUserImage: "",
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
@@ -179,7 +187,7 @@ const JobStatusScreen = ({ route, navigation }) => {
           <TouchableOpacity style={styles.iconButton}>
             <Icon name="phone" size={20} color="#6C3EE9" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity onPress={onMessage} style={styles.iconButton}>
             <Icon name="message-text" size={20} color="#6C3EE9" />
           </TouchableOpacity>
         </View>

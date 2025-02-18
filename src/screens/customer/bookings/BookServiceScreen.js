@@ -62,6 +62,7 @@ const BookServiceScreen = ({ route, navigation }) => {
 
     try {
       setLoading(true);
+      console.log(provider);
 
       const bookingData = {
         providerId: provider.providerId,

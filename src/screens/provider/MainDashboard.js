@@ -4,6 +4,7 @@ import HomeScreen from "./home/HomeScreen";
 import BookingsScreen from "./bookings/BookingsScreen";
 import ProfileScreen from "./profile/ProfileScreen";
 import MessagesScreen from "./messages/MessagingScreen";
+import MessengerScreen from "../../components/MessengerScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -47,7 +48,7 @@ const TabNavigator = () => {
       />
       <Tab.Screen
         name="MessagesTab"
-        component={MessagesScreen}
+        component={MessengerScreen}
         options={{
           tabBarLabel: "Messages",
           tabBarIcon: ({ color }) => (

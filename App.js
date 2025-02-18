@@ -49,6 +49,7 @@ import BookingsScreen from "./src/screens/provider/bookings/BookingsScreen";
 import JobStatusScreen from "./src/screens/provider/bookings/JobStatus";
 import TaskListScreen from "./src/screens/customer/home/TaskListScreen";
 import ProviderOptionScreen from "./src/screens/customer/home/ProviderOptionScreen";
+import MessageScreen from "./src/components/MessageScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -71,6 +72,8 @@ export default function App() {
           <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
           <Stack.Screen name="Role" component={RoleScreen} />
           <Stack.Screen name="SignUp" component={SignupScreen} />
+
+          <Stack.Screen name="Message" component={MessageScreen} />
 
           {/* PROVIDER SCREENS */}
           <Stack.Screen

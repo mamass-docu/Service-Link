@@ -1,5 +1,4 @@
 import { useFocusEffect } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
 import React, { useCallback, useState } from "react";
 import {
   View,
@@ -28,61 +27,67 @@ import {
 } from "firebase/firestore";
 import { useAppContext } from "../../AppProvider";
 
-const renderChatHead = ({ item }) => (
-  <TouchableOpacity
-    style={styles.chatHeadContainer}
-    onPress={() => setActiveChat(item.id)}
-  >
-    <View style={styles.chatHeadImageContainer}>
-      <Image
-        source={{
-          uri: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-4.0.3",
-        }}
-        style={styles.chatHeadImage}
-        // defaultSource={require("../../../../assets/images/profile.png")}
-      />
-      <View style={styles.onlineIndicator} />
-    </View>
-    <Text style={styles.chatHeadName} numberOfLines={1}>
-      {item.name}
-    </Text>
-  </TouchableOpacity>
-);
-
-const renderChatItem = ({ item }) => (
-  <TouchableOpacity
-    style={styles.chatItemContainer}
-    onPress={() => setActiveChat(item.id)}
-  >
-    <View style={styles.chatItemLeft}>
-      <View style={styles.avatarContainer}>
-        <Image source={{ uri: item.image }} style={styles.avatar} />
-        {item.isOnline && <View style={styles.onlineIndicator} />}
-      </View>
-      <View style={styles.chatItemInfo}>
-        <Text style={styles.chatItemName}>{item.name}</Text>
-        <Text style={styles.chatItemService}>{item.lastMessage}</Text>
-        <Text style={styles.chatItemMessage} numberOfLines={1}>
-          {item.lastMessage}
-        </Text>
-      </View>
-    </View>
-    <Text style={styles.chatItemTime}>{item.time}</Text>
-  </TouchableOpacity>
-);
-
-export default function MessengerScreen() {
+export default function MessengerScreen({ navigation }) {
   const [activeChat, setActiveChat] = useState(null);
   const [chatHeads, setChatHeads] = useState([]);
   const [messengers, setMessengers] = useState([]);
 
   const { userId, userName } = useAppContext();
 
-  // useQuery({
-  //   queryKey: ["active-messengers"],
-  //   queryFn: getActiveMessengers,
-  //   refetchOnWindowFocus: true,
-  // })
+  const renderChatHead = ({ item }) => (
+    <TouchableOpacity
+      style={styles.chatHeadContainer}
+      onPress={() =>
+        navigation.navigate("Message", {
+          otherUserId: item.otherUserId,
+          otherUserName: item.otherUserName,
+          otherUserImage: item.otherUserImage,
+        })
+      }
+    >
+      <View style={styles.chatHeadImageContainer}>
+        <Image
+          source={{
+            uri: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-4.0.3",
+          }}
+          style={styles.chatHeadImage}
+          // defaultSource={require("../../../../assets/images/profile.png")}
+        />
+        <View style={styles.onlineIndicator} />
+      </View>
+      <Text style={styles.chatHeadName} numberOfLines={1}>
+        {item.name}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderChatItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.chatItemContainer}
+      onPress={() =>
+        navigation.navigate("Message", {
+          otherUserId: item.otherUserId,
+          otherUserName: item.otherUserName,
+          otherUserImage: item.otherUserImage,
+        })
+      }
+    >
+      <View style={styles.chatItemLeft}>
+        <View style={styles.avatarContainer}>
+          <Image source={{ uri: item.image }} style={styles.avatar} />
+          {item.isOnline && <View style={styles.onlineIndicator} />}
+        </View>
+        <View style={styles.chatItemInfo}>
+          <Text style={styles.chatItemName}>{item.name}</Text>
+          <Text style={styles.chatItemService}>{item.lastMessage}</Text>
+          <Text style={styles.chatItemMessage} numberOfLines={1}>
+            {item.lastMessage}
+          </Text>
+        </View>
+      </View>
+      <Text style={styles.chatItemTime}>{item.time}</Text>
+    </TouchableOpacity>
+  );
 
   const getActiveMessengers = () => {
     onSnapshot(
@@ -94,8 +99,10 @@ export default function MessengerScreen() {
 
           const user = doc.data();
           activeUsers.push({
-            id: doc.id,
             name: user.name,
+            otherUserId: doc.id,
+            otherUserName: user.name,
+            otherUserImage: user.image,
             // image: user.image,
             image:
               "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-4.0.3",
@@ -106,43 +113,51 @@ export default function MessengerScreen() {
     );
   };
 
+  const setData = async (snapshot) => {
+    let temp = [];
+    let checked = [];
+    for (dc in snapshot.docs) {
+      // await snapshot.docs.forEach(async (dc) => {
+      const message = dc.data();
+
+      const otherUserId =
+        message.participants[0] == userId
+          ? message.participants[1]
+          : message.participants[0];
+
+      if (checked[otherUserId]) continue;
+
+      checked[otherUserId] = true;
+      const user = await getDoc(doc(db, "users", otherUserId));
+      const userData = user.data();
+
+      temp.push({
+        lastMessage: message.message,
+        name: userData.name,
+        otherUserId: otherUserId,
+        otherUserName: userData.name,
+        otherUserImage: userData.image,
+        isOnline: userData.isOnline,
+        seen: message.senderId == userId ? false : message.seen,
+        // image: userData.image,
+        image:
+          "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-4.0.3",
+      });
+      console.log(temp);
+    }
+    console.log("end", temp);
+
+    setMessengers(temp);
+  };
+
   const getMessengers = () => {
     onSnapshot(
       query(
         collection(db, "messages"),
-        where("participants", "array-contains", userId)
-        // orderBy("sentAt")
+        where("participants", "array-contains", userId),
+        orderBy("sentAt", "desc")
       ),
-      (snapshot) => {
-        let temp = [];
-        let checked = [];
-        snapshot.docs.forEach(async (dc) => {
-          const message = dc.data();
-
-          const otherUserId =
-            message.participants[0] == userId
-              ? message.participants[1]
-              : message.participants[0];
-
-          if (checked[otherUserId]) return;
-
-          checked[otherUserId] = true;
-          const user = await getDoc(doc(db, "users", otherUserId));
-          const userData = user.data();
-
-          temp.push({
-            id: dc.id,
-            lastMessage: message.message,
-            name: userData.name,
-            isOnline: userData.isOnline,
-            seen: message.senderId == userId ? false : message.seen,
-            // image: userData.image,
-            image:
-              "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-4.0.3",
-          });
-          setMessengers(temp);
-        });
-      }
+      setData
     );
   };
 
@@ -170,7 +185,7 @@ export default function MessengerScreen() {
           contentContainerStyle={styles.chatHeadsScroll}
         >
           {chatHeads.map((chatHead) => (
-            <View key={chatHead.id} style={styles.chatHeadWrapper}>
+            <View key={chatHead.otherUserId} style={styles.chatHeadWrapper}>
               {renderChatHead({ item: chatHead })}
             </View>
           ))}
@@ -181,7 +196,7 @@ export default function MessengerScreen() {
       <FlatList
         data={messengers}
         renderItem={renderChatItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.otherUserId?.toString()}
         contentContainerStyle={styles.chatList}
       />
     </SafeAreaView>
