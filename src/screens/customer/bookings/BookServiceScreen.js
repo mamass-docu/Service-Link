@@ -1,0 +1,600 @@
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Image,
+  Platform,
+  StatusBar,
+  Alert,
+  Modal,
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { useAppContext } from "../../../../AppProvider";
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "../../../firebase";
+import LocationPickerModal from "../../../../components/LocationPickerModal";
+import { add } from "../../../databaseHelper";
+
+const BookServiceScreen = ({ route, navigation }) => {
+  const { provider } = route.params;
+  const { userId, userName } = useAppContext();
+
+  const [date, setDate] = useState(new Date());
+  const [time, setTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [location, setLocation] = useState("Sample");
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [bookingId, setBookingId] = useState(null);
+
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
+  };
+
+  const onTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      setTime(selectedTime);
+    }
+  };
+
+  const handleLocationSelect = (selectedLocation) => {
+    setLocation(selectedLocation);
+  };
+
+  const handleBooking = async () => {
+    if (!location.trim()) {
+      Alert.alert("Error", "Please enter your location");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const bookingData = {
+        providerId: provider.providerId,
+        providerName: provider.providerName,
+        customerId: userId,
+        customerName: userName,
+        serviceId: provider.serviceId,
+        service: provider.service,
+        task: provider.task,
+        price: provider.price,
+        discountedPrice: provider.discountedPrice,
+        date: date.toLocaleDateString(),
+        time: time.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        address: location,
+        note: note,
+        status: "Pending",
+        createdAt: new Date().toISOString(),
+      };
+
+      const docRef = await add("bookings", bookingData);
+      // const docRef = await addDoc(collection(db, "bookings"), bookingData);
+
+      setBookingId(docRef.id);
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.log("Booking error:", error);
+      Alert.alert("Error", "Failed to submit booking. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Feather name="arrow-left" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Book Service</Text>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Service Details */}
+        <View style={styles.serviceCard}>
+          <Image
+            source={{ uri: provider.image }}
+            style={styles.serviceImage}
+            resizeMode="cover"
+          />
+          <View style={styles.serviceInfo}>
+            <Text style={styles.serviceTitle}>{provider.task}</Text>
+            <Text style={styles.estimatedTime}>
+              ⏱️ {provider.estimatedTime}
+            </Text>
+            <View style={styles.priceContainer}>
+              <Text style={styles.price}>₱{provider.price}</Text>
+              <Text style={styles.discountPrice}>
+                ₱{provider.discountedPrice}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Service Description */}
+        <View style={styles.descriptionSection}>
+          <Text style={styles.descriptionTitle}>Service Description</Text>
+          <Text style={styles.descriptionText}>{provider.description}</Text>
+          <Text style={styles.includesTitle}>Service Includes:</Text>
+          {provider.included.map((item, index) => (
+            <View key={index} style={styles.includeItem}>
+              <Text style={styles.bulletPoint}>•</Text>
+              <Text style={styles.includeText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Date & Time Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Schedule</Text>
+
+          <TouchableOpacity
+            style={styles.input}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Feather name="calendar" size={20} color="#666" />
+            <Text style={styles.inputText}>{date.toLocaleDateString()}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.input}
+            onPress={() => setShowTimePicker(true)}
+          >
+            <Feather name="clock" size={20} color="#666" />
+            <Text style={styles.inputText}>
+              {time.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+          </TouchableOpacity>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display="default"
+              onChange={onDateChange}
+              minimumDate={new Date()}
+            />
+          )}
+
+          {showTimePicker && (
+            <DateTimePicker
+              value={time}
+              mode="time"
+              display="default"
+              onChange={onTimeChange}
+            />
+          )}
+        </View>
+
+        {/* Location */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Location</Text>
+          <TouchableOpacity
+            style={styles.input}
+            onPress={() => setShowLocationPicker(true)}
+          >
+            <Feather name="map-pin" size={20} color="#666" />
+            <Text
+              style={[styles.inputText, !location && styles.placeholderText]}
+            >
+              {location || "Enter service location"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Additional Notes */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Additional Notes</Text>
+          <View style={styles.noteInput}>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Add notes for the service provider"
+              value={note}
+              onChangeText={setNote}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
+        </View>
+
+        {/* Price Summary */}
+        <View style={styles.priceSection}>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Service Fee</Text>
+            <Text style={styles.priceValue}>₱{provider.price}</Text>
+          </View>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Discount</Text>
+            <Text style={styles.discountValue}>
+              -₱{parseInt(provider.price) - parseInt(provider.discountedPrice)}
+            </Text>
+          </View>
+          <View style={[styles.priceRow, styles.totalRow]}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalValue}>₱{provider.discountedPrice}</Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Book Now Button */}
+      <TouchableOpacity
+        style={[styles.bookButton, loading && styles.disabledButton]}
+        onPress={handleBooking}
+        disabled={loading}
+      >
+        <Text style={styles.bookButtonText}>
+          {loading ? "Processing..." : "Book Now"}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Success Modal */}
+      <Modal visible={showSuccessModal} transparent={true} animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.successModal}>
+            <View style={styles.successIconContainer}>
+              <Feather name="check-circle" size={50} color="#4CAF50" />
+            </View>
+
+            <Text style={styles.successTitle}>Booking Successful!</Text>
+            <Text style={styles.bookingId}>Booking ID: {bookingId}</Text>
+
+            <View style={styles.bookingDetailsContainer}>
+              <View style={styles.bookingDetailRow}>
+                <Text style={styles.detailLabel}>Service:</Text>
+                <Text style={styles.detailValue}>{provider.task}</Text>
+              </View>
+              <View style={styles.bookingDetailRow}>
+                <Text style={styles.detailLabel}>Date:</Text>
+                <Text style={styles.detailValue}>
+                  {date.toLocaleDateString()}
+                </Text>
+              </View>
+              <View style={styles.bookingDetailRow}>
+                <Text style={styles.detailLabel}>Time:</Text>
+                <Text style={styles.detailValue}>
+                  {time.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
+              </View>
+              <View style={styles.bookingDetailRow}>
+                <Text style={styles.detailLabel}>Total:</Text>
+                <Text style={styles.detailValue}>
+                  ₱{provider.discountedPrice}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.viewBookingButton}
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  navigation.navigate("CustomerMainDashboard");
+                }}
+              >
+                <Text style={styles.viewBookingText}>View Booking</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  navigation.navigate("CustomerHome");
+                }}
+              >
+                <Text style={styles.doneButtonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <LocationPickerModal
+        visible={showLocationPicker}
+        onClose={() => setShowLocationPicker(false)}
+        onSelectLocation={handleLocationSelect}
+      />
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEEEEE",
+  },
+  backButton: {
+    marginRight: 16,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#333333",
+  },
+  serviceCard: {
+    margin: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    overflow: "hidden",
+  },
+  serviceImage: {
+    width: "100%",
+    height: 200,
+  },
+  serviceInfo: {
+    padding: 16,
+  },
+  serviceTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#333333",
+    marginBottom: 8,
+  },
+  estimatedTime: {
+    fontSize: 14,
+    color: "#666666",
+    marginBottom: 8,
+  },
+  priceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  price: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#333333",
+    marginRight: 8,
+    textDecorationLine: "line-through",
+  },
+  discountPrice: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#FFB800",
+  },
+  descriptionSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEEEEE",
+  },
+  descriptionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333333",
+    marginBottom: 8,
+  },
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#666666",
+    marginBottom: 16,
+  },
+  includesTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333333",
+    marginBottom: 8,
+  },
+  includeItem: {
+    flexDirection: "row",
+    marginBottom: 4,
+    paddingLeft: 8,
+  },
+  bulletPoint: {
+    fontSize: 14,
+    color: "#666666",
+    marginRight: 8,
+  },
+  includeText: {
+    fontSize: 14,
+    color: "#666666",
+    flex: 1,
+  },
+  section: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEEEEE",
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333333",
+    marginBottom: 12,
+  },
+  input: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  inputText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: "#333333",
+  },
+  placeholderText: {
+    color: "#999999",
+  },
+  noteInput: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 100,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#333333",
+  },
+  priceSection: {
+    padding: 16,
+  },
+  priceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  priceLabel: {
+    fontSize: 14,
+    color: "#666666",
+  },
+  priceValue: {
+    fontSize: 14,
+    color: "#333333",
+  },
+  discountValue: {
+    fontSize: 14,
+    color: "#4CAF50",
+  },
+  totalRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#EEEEEE",
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333333",
+  },
+  totalValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#FFB800",
+  },
+  bookButton: {
+    backgroundColor: "#FFB800",
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  bookButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  disabledButton: {
+    backgroundColor: "#CCCCCC",
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  successModal: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    width: "100%",
+    maxWidth: 400,
+  },
+  successIconContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#333",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  bookingId: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  bookingDetailsContainer: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  bookingDetailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: "#666",
+  },
+  detailValue: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "500",
+  },
+  modalButtons: {
+    gap: 12,
+  },
+  viewBookingButton: {
+    backgroundColor: "#FFB800",
+    borderRadius: 8,
+    padding: 16,
+    alignItems: "center",
+  },
+  viewBookingText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  doneButton: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: 8,
+    padding: 16,
+    alignItems: "center",
+  },
+  doneButtonText: {
+    color: "#666",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+});
+
+export default BookServiceScreen;
