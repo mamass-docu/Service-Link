@@ -12,6 +12,7 @@ export const AppProvider = ({ children }) => {
   const [userName, setUserName] = useState(null);
   const [userEmail, setUserEmail] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [userImage, setUserImage] = useState(null);
 
   return (
     <AppContext.Provider
@@ -24,6 +25,8 @@ export const AppProvider = ({ children }) => {
         setUserEmail,
         userRole,
         setUserRole,
+        userImage,
+        setUserImage,
       }}
     >
       {children}

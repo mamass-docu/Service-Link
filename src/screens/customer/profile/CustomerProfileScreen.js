@@ -65,7 +65,7 @@ const MenuItem = ({ icon, title, subtitle, onPress, color = "#333" }) => (
 
 const CustomerProfileScreen = ({ navigation }) => {
   const auth = getAuth(app);
-  const { userName, userEmail, userId } = useAppContext();
+  const { userName, userEmail, userId, userImage } = useAppContext();
   const [totalBookings, setTotalBookings] = useState(0);
   const [totalCompleted, setTotalCompleted] = useState(0);
 
@@ -149,7 +149,7 @@ const CustomerProfileScreen = ({ navigation }) => {
             <View style={styles.imageContainer}>
               <Image
                 source={{
-                  uri: "https://assets.epuzzle.info/puzzle/158/484/original.jpg",
+                  uri: userImage,
                 }}
                 style={styles.profileImage}
               />

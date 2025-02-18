@@ -65,7 +65,7 @@ const CustomerHomeScreen = ({ navigation }) => {
       reviews: 10,
     },
   ]);
-  const { userName, userId } = useAppContext();
+  const { userName, userId, userImage } = useAppContext();
 
   // useFocusEffect(
   //   useCallback(() => {
@@ -153,7 +153,7 @@ const CustomerHomeScreen = ({ navigation }) => {
           <View style={styles.userInfoContainer}>
             <Image
               source={{
-                uri: "https://assets.epuzzle.info/puzzle/158/484/original.jpg",
+                uri: userImage,
               }}
               style={styles.userAvatar}
             />

@@ -21,14 +21,14 @@ import {
   where,
 } from "firebase/firestore";
 import { app, db } from "../../../firebase";
-import * as ImagePicker from "expo-image-picker";
-import { update, uploadFile, serverTimestamp } from "../../../databaseHelper";
+import { update, serverTimestamp } from "../../../databaseHelper";
 import { getAuth } from "firebase/auth";
+import { selectImage } from "../../../ImageSelector";
+import { uploadImage } from "../../../cloudinary";
 
 const ProfileScreen = ({ navigation }) => {
-  const { userName, userId } = useAppContext();
+  const { userName, userId, userImage, setUserImage } = useAppContext();
   const [totalCompleted, setTotalCompleted] = useState(0);
-  const [imageUri, setImageUri] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -94,39 +94,31 @@ const ProfileScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const requestPermission = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      alert("Sorry, we need camera roll permissions to make this work!");
-      return false;
-    }
-    return true;
-  };
+  const updateProfileImage = async () => {
+    const image = await selectImage();
+    if (!image) return;
 
-  const selectImage = async () => {
-    const hasPermission = await requestPermission();
-    if (!hasPermission) return;
+    const imageName = image.fileName;
+    const imageExtension = imageName.substring(imageName.lastIndexOf("."));
+    const filename = `${userId}${imageExtension}`;
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
-    });
+    try {
+      // await deleteImage(userImage);
 
-    if (!result.canceled) {
-      const image = result.assets[0];
-      const uri = image.uri;
-      const imageName = image.fileName;
-      const imageExtension = imageName.substring(imageName.lastIndexOf("."));
-      console.log(imageExtension);
-      const filename = `${userId}${imageExtension}`;
-      console.log(filename);
-      console.log(uri);
+      const imgUrl = await uploadImage({
+        uri: image.uri,
+        type: "image/jpeg",
+        name: filename,
+      });
 
-      const downloadUrl = uploadFile(`profileImages/${filename}`, uri);
-      console.log(downloadUrl);
+      await update("users", userId, {
+        image: imgUrl,
+      });
 
-      setImageUri(uri);
+      setUserImage(imgUrl);
+      alert("Image uploaded successfully!");
+    } catch (e) {
+      alert(e);
     }
   };
 
@@ -140,13 +132,13 @@ const ProfileScreen = ({ navigation }) => {
             <View style={styles.imageContainer}>
               <Image
                 source={{
-                  uri: imageUri,
+                  uri: userImage,
                 }}
                 style={styles.profileImage}
               />
               <TouchableOpacity
                 style={styles.editImageButton}
-                onPress={selectImage}
+                onPress={updateProfileImage}
               >
                 <Feather name="camera" size={20} color="#FFF" />
               </TouchableOpacity>

@@ -18,6 +18,7 @@ import {
   SafeAreaView,
   Platform,
   KeyboardAvoidingView,
+  Image,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { db } from "../firebase";
@@ -97,10 +98,22 @@ const MessageScreen = ({ route, navigation }) => {
       ]}
     >
       {!item.isUserSender && (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{otherUserName.charAt(0)}</Text>
-        </View>
+        <Image
+          source={{ uri: otherUserImage }}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 28,
+            backgroundColor: "#F0F0F0",
+            justifyContent: "center",
+            alignItems: "center",
+            marginRight: 8,
+          }}
+        />
       )}
+      {/* <View style={styles.avatar}> */}
+      {/* <Text style={styles.avatarText}>{otherUserName.charAt(0)}</Text> */}
+      {/* </View> */}
       <View
         style={[
           styles.messageBubble,

@@ -48,7 +48,7 @@ export default function MessengerScreen({ navigation }) {
       <View style={styles.chatHeadImageContainer}>
         <Image
           source={{
-            uri: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-4.0.3",
+            uri: item.otherUserImage,
           }}
           style={styles.chatHeadImage}
           // defaultSource={require("../../../../assets/images/profile.png")}
@@ -74,7 +74,7 @@ export default function MessengerScreen({ navigation }) {
     >
       <View style={styles.chatItemLeft}>
         <View style={styles.avatarContainer}>
-          <Image source={{ uri: item.image }} style={styles.avatar} />
+          <Image source={{ uri: item.otherUserImage }} style={styles.avatar} />
           {item.isOnline && <View style={styles.onlineIndicator} />}
         </View>
         <View style={styles.chatItemInfo}>
@@ -103,9 +103,6 @@ export default function MessengerScreen({ navigation }) {
             otherUserId: doc.id,
             otherUserName: user.name,
             otherUserImage: user.image,
-            // image: user.image,
-            image:
-              "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-4.0.3",
           });
         });
         setChatHeads(activeUsers);
@@ -116,9 +113,9 @@ export default function MessengerScreen({ navigation }) {
   const setData = async (snapshot) => {
     let temp = [];
     let checked = [];
-    for (dc in snapshot.docs) {
-      // await snapshot.docs.forEach(async (dc) => {
-      const message = dc.data();
+
+    for (let i in snapshot.docs) {
+      const message = snapshot.docs[i].data();
 
       const otherUserId =
         message.participants[0] == userId
@@ -139,9 +136,6 @@ export default function MessengerScreen({ navigation }) {
         otherUserImage: userData.image,
         isOnline: userData.isOnline,
         seen: message.senderId == userId ? false : message.seen,
-        // image: userData.image,
-        image:
-          "https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-4.0.3",
       });
       console.log(temp);
     }

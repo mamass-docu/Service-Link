@@ -94,36 +94,9 @@ const ServiceCard = ({ icon, title, count }) => (
 
 const HomeScreen = () => {
   const navigation = useNavigation();
-  const { userName, userId } = useAppContext();
+  const { userName, userId, userImage } = useAppContext();
   const [totalCompleted, setTotalCompleted] = useState(0);
-  const [upcomingJobs, setUpcomingJobs] = useState([
-    {
-      id: "request1",
-      customerName: "John Applessed",
-      service: "Regular Wash & Fold",
-      price: "250",
-      status: "Pending",
-      address: "#425, 3rd Street, Makati",
-      rating: 4.5,
-      avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-      date: "2024-02-10",
-      time: "2:30 PM",
-      customerId: "customer123",
-    },
-    {
-      id: "request2",
-      customerName: "Jane Smith",
-      service: "Dry Cleaning",
-      price: "350",
-      status: "Pending",
-      address: "#123, Main Street, Makati",
-      rating: 4.8,
-      avatar: "https://randomuser.me/api/portraits/women/2.jpg",
-      date: "2024-02-11",
-      time: "3:30 PM",
-      customerId: "customer456",
-    },
-  ]);
+  const [upcomingJobs, setUpcomingJobs] = useState([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -249,7 +222,7 @@ const HomeScreen = () => {
           <View style={styles.profileSection}>
             <Image
               source={{
-                uri: "https://assets.epuzzle.info/puzzle/158/484/original.jpg",
+                uri: userImage,
               }}
               style={styles.profileImage}
             />

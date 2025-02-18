@@ -19,9 +19,12 @@ import { db } from "../../../firebase";
 import { useFocusEffect } from "@react-navigation/native";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { find, update } from "../../../databaseHelper";
+import { selectImage } from "../../../ImageSelector";
+import { uploadImage } from "../../../cloudinary";
 
 export default function CustomerEditProfileScreen({ navigation }) {
-  const { userId, userEmail, setUserName } = useAppContext();
+  const { userId, userEmail, setUserName, userImage, setUserImage } =
+    useAppContext();
 
   const [name, setName] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState(null);
@@ -58,6 +61,32 @@ export default function CustomerEditProfileScreen({ navigation }) {
       refresh();
     }, [])
   );
+
+  const updateProfileImage = async () => {
+    const image = await selectImage();
+    if (!image) return;
+
+    const imageName = image.fileName;
+    const imageExtension = imageName.substring(imageName.lastIndexOf("."));
+    const filename = `${userId}${imageExtension}`;
+
+    try {
+      const imgUrl = await uploadImage({
+        uri: image.uri,
+        type: "image/jpeg",
+        name: filename,
+      });
+
+      await update("users", userId, {
+        image: imgUrl,
+      });
+
+      setUserImage(imgUrl);
+      alert("Image uploaded successfully!");
+    } catch (e) {
+      alert(e);
+    }
+  };
 
   const handleSave = async () => {
     await update("users", userId, {
@@ -136,9 +165,10 @@ export default function CustomerEditProfileScreen({ navigation }) {
         {/* Profile Picture */}
         <TouchableOpacity
           style={styles.profileImageContainer}
-          onPress={() => setShowAvatarModal(true)}
+          onPress={updateProfileImage}
+          // onPress={() => setShowAvatarModal(true)}
         >
-          <Image source={{ uri: selectedAvatar }} style={styles.profileImage} />
+          <Image source={{ uri: userImage }} style={styles.profileImage} />
           <View style={styles.editIconContainer}>
             <Feather name="edit-2" size={20} color="#FFB800" />
           </View>

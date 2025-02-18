@@ -30,7 +30,8 @@ export default function LoginScreen({ navigation }) {
     email: "provider@provider.com",
     password: "password",
   });
-  const { setUserId, setUserName, setUserRole, setUserEmail } = useAppContext();
+  const { setUserId, setUserName, setUserRole, setUserEmail, setUserImage } =
+    useAppContext();
 
   const auth = getAuth(app);
 
@@ -85,6 +86,7 @@ export default function LoginScreen({ navigation }) {
       setUserName(userData.name);
       setUserEmail(userData.email);
       setUserRole(userData.role);
+      setUserImage(userData.image);
 
       update("users", userCredential.user.uid, {
         isOnline: true,
