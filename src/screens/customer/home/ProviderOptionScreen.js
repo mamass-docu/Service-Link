@@ -16,8 +16,8 @@ import { Feather } from "@expo/vector-icons";
 import BookServiceScreen from "../bookings/BookServiceScreen";
 import { db } from "../../../firebase";
 import { useFocusEffect } from "@react-navigation/native";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { all } from "../../../databaseHelper";
+import { collection, getDocs, query } from "firebase/firestore";
+import { all, get, where } from "../../../databaseHelper";
 
 const ServiceDetailsModal = ({ visible, provider, onClose, onPress }) => {
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -80,15 +80,15 @@ const ServiceDetailsModal = ({ visible, provider, onClose, onPress }) => {
                 <Text style={modalStyles.discountPrice}>
                   ₱{provider.discountedPrice}
                 </Text>
-                <Text style={modalStyles.estimatedTime}>
+                {/* <Text style={modalStyles.estimatedTime}>
                   Estimated Time: {provider.estimatedTime}
-                </Text>
+                </Text> */}
                 <Text style={modalStyles.description}>
                   {provider.description}
                 </Text>
               </View>
 
-              <View style={modalStyles.sectionContainer}>
+              {/* <View style={modalStyles.sectionContainer}>
                 <Text style={modalStyles.sectionTitle}>Services Included</Text>
                 {provider.included.map((item, index) => (
                   <Text key={index} style={modalStyles.bulletPoint}>
@@ -104,7 +104,7 @@ const ServiceDetailsModal = ({ visible, provider, onClose, onPress }) => {
                     • {item}
                   </Text>
                 ))}
-              </View>
+              </View> */}
 
               <TouchableOpacity
                 style={modalStyles.bottomAddToCartButton}
@@ -181,14 +181,13 @@ export default function ProviderOptionScreen({ navigation, route }) {
     useCallback(() => {
       async function refresh() {
         try {
-          const snapshot = await all("providerServices");
+          const snap = await get(
+            "providerServices",
+            where("service", "==", service)
+          );
+
           // const snapshot = await getDocs(collection(db, "providerServices"));
-          setProviders(
-            snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-          );
-          console.log(
-            snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-          );
+          setProviders(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
         } catch (error) {
           console.error("Error fetching providers:", error);
         }

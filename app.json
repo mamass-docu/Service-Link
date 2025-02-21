@@ -1,14 +1,14 @@
 {
   "expo": {
     "name": "ServiceLink",
-    "slug": "ServiceLink",
+    "slug": "service-link",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash_icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/adaptive_icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.juniorprogrammer.ServiceLink"
@@ -31,8 +31,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "06a5cdc6-2e1e-4a21-8a5c-47873851d3ca"
+        "projectId": "b10b83ac-690e-4665-88b4-5e472d0dc70a"
       }
-    }
+    },
+    "owner": "09052181646"
   }
 }

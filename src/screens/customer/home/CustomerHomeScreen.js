@@ -120,10 +120,6 @@ const CustomerHomeScreen = ({ navigation }) => {
       imageUrl:
         "https://cdn2.iconfinder.com/data/icons/bzzricon-hobbies-and-free-time/512/24_Automotive-256.png",
     },
-    {
-      title: "More",
-      imageUrl: "https://img.icons8.com/color/96/more.png",
-    },
   ];
 
   const offers = [
@@ -199,10 +195,17 @@ const CustomerHomeScreen = ({ navigation }) => {
                 title={service.title}
                 imageUrl={service.imageUrl}
                 onPress={() =>
-                  navigation.navigate("CustomerMoreServices", { service })
+                  navigation.navigate("CustomerProviderOption", {
+                    service: service.title,
+                  })
                 }
               />
             ))}
+            <ServiceCard
+              title="More"
+              imageUrl="https://img.icons8.com/color/96/more.png"
+              onPress={() => navigation.navigate("CustomerMoreServices")}
+            />
           </View>
         </View>
 

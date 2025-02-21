@@ -34,6 +34,94 @@ export default function MessengerScreen({ navigation }) {
 
   const { userId, userName } = useAppContext();
 
+  const setData = async (snapshot) => {
+    let temp = [];
+    let checked = [];
+
+    for (let i in snapshot.docs) {
+      const message = snapshot.docs[i].data();
+
+      const otherUserId =
+        message.participants[0] == userId
+          ? message.participants[1]
+          : message.participants[0];
+
+      if (checked[otherUserId]) continue;
+
+      checked[otherUserId] = true;
+      const user = await getDoc(doc(db, "users", otherUserId));
+      const userData = user.data();
+
+      temp.push({
+        lastMessage: message.message,
+        name: userData.name,
+        otherUserId: otherUserId,
+        otherUserName: userData.name,
+        otherUserImage: userData.image,
+        isOnline: userData.isOnline,
+        seen: message.senderId == userId ? false : message.seen,
+      });
+    }
+
+    setMessengers(temp);
+  };
+
+  const callback = () => {
+    const unsubscribeMess = onSnapshot(
+      query(
+        collection(db, "messages"),
+        where("participants", "array-contains", userId),
+        orderBy("sentAt", "desc")
+      ),
+      setData
+    );
+
+    const unsubscribeActive = onSnapshot(
+      query(collection(db, "users")),
+      (snapshot) => {
+        let activeUsers = [];
+        let temp = messengers;
+
+        snapshot.docs.forEach((doc) => {
+          if (doc.id == userId) return;
+
+          const user = doc.data();
+          for (let i in temp) {
+            let mess = temp[i];
+            if (mess.otherUserId != doc.id) continue;
+
+            temp[i] = {
+              ...mess,
+              otherUserName: user.name,
+              otherUserImage: user.image,
+              isOnline: user.isOnline,
+            };
+          }
+
+          if (!user.isOnline) return;
+
+          activeUsers.push({
+            name: user.name,
+            otherUserId: doc.id,
+            otherUserName: user.name,
+            otherUserImage: user.image,
+          });
+        });
+
+        setMessengers(temp);
+        setChatHeads(activeUsers);
+      }
+    );
+
+    return () => {
+      console.log("unsubs");
+      unsubscribeActive();
+      unsubscribeMess();
+    };
+  };
+
+  useFocusEffect(useCallback(callback, []));
+
   const renderChatHead = ({ item }) => (
     <TouchableOpacity
       style={styles.chatHeadContainer}
@@ -51,7 +139,6 @@ export default function MessengerScreen({ navigation }) {
             uri: item.otherUserImage,
           }}
           style={styles.chatHeadImage}
-          // defaultSource={require("../../../../assets/images/profile.png")}
         />
         <View style={styles.onlineIndicator} />
       </View>
@@ -87,79 +174,6 @@ export default function MessengerScreen({ navigation }) {
       </View>
       <Text style={styles.chatItemTime}>{item.time}</Text>
     </TouchableOpacity>
-  );
-
-  const getActiveMessengers = () => {
-    onSnapshot(
-      query(collection(db, "users"), where("isOnline", "==", true)),
-      (snapshot) => {
-        let activeUsers = [];
-        snapshot.docs.forEach((doc) => {
-          if (doc.id == userId) return;
-
-          const user = doc.data();
-          activeUsers.push({
-            name: user.name,
-            otherUserId: doc.id,
-            otherUserName: user.name,
-            otherUserImage: user.image,
-          });
-        });
-        setChatHeads(activeUsers);
-      }
-    );
-  };
-
-  const setData = async (snapshot) => {
-    let temp = [];
-    let checked = [];
-
-    for (let i in snapshot.docs) {
-      const message = snapshot.docs[i].data();
-
-      const otherUserId =
-        message.participants[0] == userId
-          ? message.participants[1]
-          : message.participants[0];
-
-      if (checked[otherUserId]) continue;
-
-      checked[otherUserId] = true;
-      const user = await getDoc(doc(db, "users", otherUserId));
-      const userData = user.data();
-
-      temp.push({
-        lastMessage: message.message,
-        name: userData.name,
-        otherUserId: otherUserId,
-        otherUserName: userData.name,
-        otherUserImage: userData.image,
-        isOnline: userData.isOnline,
-        seen: message.senderId == userId ? false : message.seen,
-      });
-      console.log(temp);
-    }
-    console.log("end", temp);
-
-    setMessengers(temp);
-  };
-
-  const getMessengers = () => {
-    onSnapshot(
-      query(
-        collection(db, "messages"),
-        where("participants", "array-contains", userId),
-        orderBy("sentAt", "desc")
-      ),
-      setData
-    );
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      getActiveMessengers();
-      getMessengers();
-    }, [])
   );
 
   return (

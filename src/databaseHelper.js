@@ -10,15 +10,16 @@ import {
   where,
   serverTimestamp,
 } from "firebase/firestore";
-import { db, app } from "./firebase";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db } from "./firebase";
 
-const find = async (collectionName, uuid) => {
-  return await getDoc(doc(db, collectionName, uuid));
+const find = async (collectionName, uid, format) => {
+  const snapshot = await getDoc(doc(db, collectionName, uid));
+  return format == undefined ? snapshot : format(snapshot);
 };
 
-const all = async (collectionName) => {
-  return await getDocs(collection(db, collectionName));
+const all = async (collectionName, format) => {
+  const snapshot = await getDocs(collection(db, collectionName));
+  return format == undefined ? snapshot : format(snapshot.docs);
 };
 
 const get = async (collectionName, ...whereCond) => {
@@ -29,32 +30,12 @@ const add = async (collectionName, data) => {
   return await addDoc(collection(db, collectionName), data);
 };
 
-const update = async (collectionName, uuid, data) => {
-  await updateDoc(doc(db, collectionName, uuid), data);
+const update = async (collectionName, uid, data) => {
+  await updateDoc(doc(db, collectionName, uid), data);
 };
 
-const remove = async (collectionName, uuid) => {
-  await deleteDoc(doc(db, collectionName, uuid));
+const remove = async (collectionName, uid) => {
+  await deleteDoc(doc(db, collectionName, uid));
 };
 
-const uploadFile = async (filePath, fileUri) => {
-  const storage = getStorage(app);
-  const storageRef = ref(storage, filePath);
-  const response = await fetch(fileUri);
-  const blob = await response.blob();
-
-  await uploadBytes(storageRef, blob);
-  return await getDownloadURL(storageRef);
-};
-
-export {
-  get,
-  all,
-  find,
-  add,
-  update,
-  remove,
-  where,
-  uploadFile,
-  serverTimestamp,
-};
+export { get, all, find, add, update, remove, where, serverTimestamp };

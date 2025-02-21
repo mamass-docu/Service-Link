@@ -35,6 +35,8 @@ const BookServiceScreen = ({ route, navigation }) => {
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [bookingId, setBookingId] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [referenceNumber, setReferenceNumber] = useState("");
 
   const onDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
@@ -60,6 +62,11 @@ const BookServiceScreen = ({ route, navigation }) => {
       return;
     }
 
+    if (!paymentMethod) {
+      Alert.alert("Error", "Please select a payment method");
+      return;
+    }
+
     try {
       setLoading(true);
       console.log(provider);
@@ -81,6 +88,8 @@ const BookServiceScreen = ({ route, navigation }) => {
         }),
         address: location,
         note: note,
+        paymentMethod: paymentMethod,
+        referenceNumber: referenceNumber,
         status: "Pending",
         createdAt: new Date().toISOString(),
       };
@@ -123,9 +132,9 @@ const BookServiceScreen = ({ route, navigation }) => {
           />
           <View style={styles.serviceInfo}>
             <Text style={styles.serviceTitle}>{provider.task}</Text>
-            <Text style={styles.estimatedTime}>
+            {/* <Text style={styles.estimatedTime}>
               ⏱️ {provider.estimatedTime}
-            </Text>
+            </Text> */}
             <View style={styles.priceContainer}>
               <Text style={styles.price}>₱{provider.price}</Text>
               <Text style={styles.discountPrice}>
@@ -139,13 +148,13 @@ const BookServiceScreen = ({ route, navigation }) => {
         <View style={styles.descriptionSection}>
           <Text style={styles.descriptionTitle}>Service Description</Text>
           <Text style={styles.descriptionText}>{provider.description}</Text>
-          <Text style={styles.includesTitle}>Service Includes:</Text>
+          {/* <Text style={styles.includesTitle}>Service Includes:</Text>
           {provider.included.map((item, index) => (
             <View key={index} style={styles.includeItem}>
               <Text style={styles.bulletPoint}>•</Text>
               <Text style={styles.includeText}>{item}</Text>
             </View>
-          ))}
+          ))} */}
         </View>
 
         {/* Date & Time Selection */}
@@ -207,6 +216,78 @@ const BookServiceScreen = ({ route, navigation }) => {
               {location || "Enter service location"}
             </Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Payment Options */}
+        <View style={styles.paymentSection}>
+          <Text style={styles.sectionTitle}>Payment</Text>
+          <TouchableOpacity
+            style={styles.paymentSelector}
+            onPress={() =>
+              navigation.navigate("PaymentOptionsScreen", { setPaymentMethod })
+            }
+          >
+            <View style={styles.paymentSelectorLeft}>
+              {paymentMethod ? (
+                <>
+                  {paymentMethod === "COD" ? (
+                    <View style={styles.codIconContainer}>
+                      <Feather name="dollar-sign" size={24} color="#FFB800" />
+                    </View>
+                  ) : (
+                    <Image
+                      source={
+                        paymentMethod === "GCash"
+                          ? require("../../../../assets/images/gcash.png")
+                          : require("../../../../assets/images/maya.png")
+                      }
+                      style={styles.paymentMethodIcon}
+                      resizeMode="contain"
+                    />
+                  )}
+                  <View style={styles.paymentMethodInfo}>
+                    <Text style={styles.paymentMethodText}>
+                      {paymentMethod === "COD"
+                        ? "Cash on Delivery"
+                        : paymentMethod}
+                    </Text>
+                    <Text style={styles.paymentMethodSubtext}>
+                      {paymentMethod === "COD"
+                        ? "Pay when service is complete"
+                        : `Pay with ${paymentMethod} e-wallet`}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.noPaymentIcon}>
+                    <Feather name="credit-card" size={24} color="#666" />
+                  </View>
+                  <View style={styles.paymentMethodInfo}>
+                    <Text style={styles.selectPaymentText}>
+                      Select Payment Method
+                    </Text>
+                    <Text style={styles.paymentMethodSubtext}>
+                      Choose how you want to pay
+                    </Text>
+                  </View>
+                </>
+              )}
+            </View>
+            <Feather name="chevron-right" size={24} color="#DDD" />
+          </TouchableOpacity>
+
+          {/* Reference Number Input - Only show if payment method is selected and not COD */}
+          {paymentMethod && paymentMethod !== "COD" && (
+            <View style={styles.referenceNumberSection}>
+              <TextInput
+                style={styles.referenceNumberInput}
+                placeholder="Enter reference number"
+                value={referenceNumber}
+                onChangeText={setReferenceNumber}
+              />
+            </View>
+          )}
         </View>
 
         {/* Additional Notes */}
@@ -291,6 +372,14 @@ const BookServiceScreen = ({ route, navigation }) => {
                 <Text style={styles.detailValue}>
                   ₱{provider.discountedPrice}
                 </Text>
+              </View>
+              <View style={styles.bookingDetailRow}>
+                <Text style={styles.detailLabel}>Payment Method:</Text>
+                <Text style={styles.detailValue}>{paymentMethod}</Text>
+              </View>
+              <View style={styles.bookingDetailRow}>
+                <Text style={styles.detailLabel}>Reference Number:</Text>
+                <Text style={styles.detailValue}>{referenceNumber}</Text>
               </View>
             </View>
 
@@ -595,6 +684,88 @@ const styles = StyleSheet.create({
     color: "#666",
     fontSize: 16,
     fontWeight: "600",
+  },
+  paymentSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEEEEE",
+  },
+  paymentSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3.84,
+    elevation: 2,
+  },
+  paymentSelectorLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  noPaymentIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  paymentMethodIcon: {
+    width: 40,
+    height: 40,
+    marginRight: 16,
+  },
+  codIconContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#FFF9E6",
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  paymentMethodInfo: {
+    flex: 1,
+  },
+  selectPaymentText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 4,
+  },
+  paymentMethodText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 4,
+  },
+  paymentMethodSubtext: {
+    fontSize: 14,
+    color: "#999",
+  },
+  referenceNumberSection: {
+    marginTop: 12,
+  },
+  referenceNumberInput: {
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: "#333333",
+    backgroundColor: "#FFFFFF",
   },
 });
 

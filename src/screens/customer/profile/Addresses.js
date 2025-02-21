@@ -225,11 +225,10 @@ export default function Addresses({ navigation }) {
 
   useEffect(() => {
     const refresh = async () => {
-      const userSnapshot = await find("users", userId);
+      const userData = await find("users", userId, (snap) => snap.data());
       // const userSnapshot = await getDoc(doc(db, "users", userId));
-      const userData = userSnapshot.data();
 
-      if (userData.addresses) setAddresses(userData.addresses);
+      if (userData?.addresses) setAddresses(userData?.addresses);
     };
     refresh();
   }, []);

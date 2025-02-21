@@ -33,7 +33,7 @@ const MessageScreen = ({ route, navigation }) => {
   const { otherUserId, otherUserName, otherUserImage } = route.params;
 
   const getMessages = () => {
-    onSnapshot(
+    const unsubscribe = onSnapshot(
       query(
         collection(db, "messages"),
         where("participants", "array-contains", userId),
@@ -56,13 +56,14 @@ const MessageScreen = ({ route, navigation }) => {
         setMessages(temp);
       }
     );
+
+    return () => {
+      unsubscribe();
+      console.log("unsubs message");
+    };
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      getMessages();
-    }, [])
-  );
+  useFocusEffect(useCallback(getMessages, []));
 
   const sendMessage = async () => {
     if (newMessage.trim() == "") return;

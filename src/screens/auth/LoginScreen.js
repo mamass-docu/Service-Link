@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -53,6 +53,7 @@ export default function LoginScreen({ navigation }) {
 
       // Check if user exists in serviceProviders collection
       const userDoc = await find("users", userCredential.user.uid);
+
       // const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
 
       if (!userDoc.exists()) {
@@ -80,18 +81,18 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      setIsLoading(false);
-
       setUserId(userCredential.user.uid);
       setUserName(userData.name);
       setUserEmail(userData.email);
       setUserRole(userData.role);
       setUserImage(userData.image);
 
-      update("users", userCredential.user.uid, {
+      await update("users", userCredential.user.uid, {
         isOnline: true,
         lastSeen: serverTimestamp(),
       });
+
+      setIsLoading(false);
 
       navigation.reset({
         index: 0,
@@ -104,7 +105,6 @@ export default function LoginScreen({ navigation }) {
         ],
       });
     } catch (error) {
-      setIsLoading(false);
       console.error("Login error:", error);
 
       let errorMessage = "An error occurred during login";
@@ -127,6 +127,8 @@ export default function LoginScreen({ navigation }) {
       }
 
       Alert.alert("Error", errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 

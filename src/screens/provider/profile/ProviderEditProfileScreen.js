@@ -31,9 +31,8 @@ export default function ProviderEditProfileScreen({ navigation }) {
     useCallback(() => {
       async function refresh() {
         try {
-          const userSnapshot = await find("users", userId);
+          const userData = await find("users", userId, (snap) => snap.data());
           // const userSnapshot = await getDoc(doc(db, "users", userId));
-          const userData = userSnapshot.data();
 
           setName(userData.name);
           setPhoneNumber(userData.phoneNumber);
