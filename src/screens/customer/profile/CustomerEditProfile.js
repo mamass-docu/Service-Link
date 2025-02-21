@@ -21,12 +21,13 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { find, update } from "../../../databaseHelper";
 import { selectImage } from "../../../ImageSelector";
 import { uploadImage } from "../../../cloudinary";
+import { updateCustomerUserName } from "../../../db/UpdateUser";
 
 export default function CustomerEditProfileScreen({ navigation }) {
-  const { userId, userEmail, setUserName, userImage, setUserImage } =
+  const { userId, userName, userEmail, setUserName, userImage, setUserImage } =
     useAppContext();
 
-  const [name, setName] = useState(null);
+  const [name, setName] = useState(userName);
   const [phoneNumber, setPhoneNumber] = useState(null);
 
   const [showAvatarModal, setShowAvatarModal] = useState(false);
@@ -48,10 +49,10 @@ export default function CustomerEditProfileScreen({ navigation }) {
     useCallback(() => {
       async function refresh() {
         try {
-          const userData = await find("users", userId, (snap) => snap.data());
+          const snap = await find("users", userId);
+          const userData = snap.data();
           // const userSnapshot = await getDoc(doc(db, "users", userId));
 
-          setName(userData.name);
           setPhoneNumber(userData.phoneNumber);
         } catch (error) {
           console.error("Error fetching services:", error);
@@ -65,16 +66,12 @@ export default function CustomerEditProfileScreen({ navigation }) {
     const image = await selectImage();
     if (!image) return;
 
-    const imageName = image.fileName;
-    const imageExtension = imageName.substring(imageName.lastIndexOf("."));
-    const filename = `${userId}${imageExtension}`;
+    // const imageName = image.fileName;
+    // const imageExtension = imageName.substring(imageName.lastIndexOf("."));
+    // const filename = `${userId}${imageExtension}`;
 
     try {
-      const imgUrl = await uploadImage({
-        uri: image.uri,
-        type: "image/jpeg",
-        name: filename,
-      });
+      const imgUrl = await uploadImage(image, userId);
 
       await update("users", userId, {
         image: imgUrl,
@@ -92,6 +89,9 @@ export default function CustomerEditProfileScreen({ navigation }) {
       name: name,
       phoneNumber: phoneNumber,
     });
+
+    if (userName !== name) await updateCustomerUserName(userId, name);
+
     // await updateDoc(doc(db, "users", userId), {
     //   name: name,
     //   phoneNumber: phoneNumber,

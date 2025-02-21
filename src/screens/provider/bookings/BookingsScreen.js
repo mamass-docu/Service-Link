@@ -144,7 +144,11 @@ const BookingsScreen = ({ navigation }) => {
 
   async function refresh() {
     try {
-      const snapshot = await get("bookings", where("providerId", "==", userId));
+      const snapshot = await get(
+        "bookings",
+        false,
+        where("providerId", "==", userId)
+      );
       // const snapshot = await getDocs(
       //   query(collection(db, "bookings"), where("providerId", "==", userId))
       // );
@@ -152,13 +156,13 @@ const BookingsScreen = ({ navigation }) => {
 
       for (const bookingsDoc of snapshot.docs) {
         const bookingsData = bookingsDoc.data();
-        const userSnap = await find("users", bookingsData.customerId);
+        const userSnap = await find("users", bookingsData.customerId, false);
         // const userSnap = await getDoc(doc(db, "users", bookingsData.customerId));
 
         temp.push({
           id: bookingsDoc.id,
           ...bookingsData,
-          customerName: userSnap.exists() ? userSnap.data().name : null,
+          customerImage: userSnap.exists() ? userSnap.data().image : null,
         });
       }
 
@@ -178,9 +182,14 @@ const BookingsScreen = ({ navigation }) => {
           text: "Accept",
           onPress: async () => {
             try {
-              await update("bookings", bookingId, {
-                status: "Confirmed",
-              });
+              await update(
+                "bookings",
+                bookingId,
+                {
+                  status: "Confirmed",
+                },
+                false
+              );
               // await updateDoc(doc(db, "bookings", bookingId), {
               //   status: "Confirmed",
               // });
@@ -211,9 +220,14 @@ const BookingsScreen = ({ navigation }) => {
           text: "Decline",
           onPress: async () => {
             try {
-              await update("bookings", bookingId, {
-                status: "Declined",
-              });
+              await update(
+                "bookings",
+                bookingId,
+                {
+                  status: "Declined",
+                },
+                false
+              );
               // await updateDoc(doc(db, "bookings", bookingId), {
               //   status: "Declined",
               // });

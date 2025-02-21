@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 // Create a context
 const AppContext = createContext();
@@ -8,6 +8,7 @@ export const useAppContext = () => {
 };
 
 export const AppProvider = ({ children }) => {
+  const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState(null);
   const [userEmail, setUserEmail] = useState(null);
@@ -27,6 +28,8 @@ export const AppProvider = ({ children }) => {
         setUserRole,
         userImage,
         setUserImage,
+        isLoading,
+        setIsLoading,
       }}
     >
       {children}

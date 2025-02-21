@@ -20,20 +20,36 @@ import { app, db } from "../../firebase";
 import { signInWithEmailAndPassword, getAuth } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useAppContext } from "../../../AppProvider";
-import { find, update, serverTimestamp } from "../../databaseHelper";
+import {
+  isLoading,
+  setIsLoading,
+  find,
+  update,
+  serverTimestamp,
+} from "../../databaseHelper";
 const { width, height } = Dimensions.get("window");
 
 export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "provider@provider.com",
     password: "password",
   });
+
   const { setUserId, setUserName, setUserRole, setUserEmail, setUserImage } =
     useAppContext();
 
   const auth = getAuth(app);
+
+  // const {
+  //   data,
+  //   isLoading: loadn,
+  //   refetch,
+  // } = useFind({
+  //   path: "users",
+  //   fetchOnFocus: false,
+  // });
 
   const handleLogin = async () => {
     if (!formData.email || !formData.password) {
@@ -41,9 +57,9 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    setIsLoading(true);
-
     try {
+      setIsLoading(true);
+
       // Attempt to sign in
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -51,14 +67,15 @@ export default function LoginScreen({ navigation }) {
         formData.password
       );
 
+      // refetch(userCredential.user.uid);
+
       // Check if user exists in serviceProviders collection
-      const userDoc = await find("users", userCredential.user.uid);
+      const userDoc = await find("users", userCredential.user.uid, false);
 
       // const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
 
       if (!userDoc.exists()) {
         await auth.signOut();
-        setIsLoading(false);
         Alert.alert("Error", "Account not found!!!");
         return;
       }
@@ -68,7 +85,6 @@ export default function LoginScreen({ navigation }) {
       // Verify user type
       if (userData.role == "Admin") {
         await auth.signOut();
-        setIsLoading(false);
         Alert.alert("Error", "Invalid account type!!!");
         return;
       }
@@ -76,7 +92,6 @@ export default function LoginScreen({ navigation }) {
       // Check account status
       if (!userData.active) {
         await auth.signOut();
-        setIsLoading(false);
         Alert.alert("Error", "Account is not active!!!");
         return;
       }
@@ -87,12 +102,15 @@ export default function LoginScreen({ navigation }) {
       setUserRole(userData.role);
       setUserImage(userData.image);
 
-      await update("users", userCredential.user.uid, {
-        isOnline: true,
-        lastSeen: serverTimestamp(),
-      });
-
-      setIsLoading(false);
+      await update(
+        "users",
+        userCredential.user.uid,
+        {
+          isOnline: true,
+          lastSeen: serverTimestamp(),
+        },
+        false
+      );
 
       navigation.reset({
         index: 0,
@@ -222,9 +240,9 @@ export default function LoginScreen({ navigation }) {
             <TouchableOpacity
               style={styles.loginButton}
               onPress={handleLogin}
-              disabled={isLoading}
+              disabled={isLoading()}
             >
-              {isLoading ? (
+              {isLoading() ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.loginButtonText}>Sign In</Text>

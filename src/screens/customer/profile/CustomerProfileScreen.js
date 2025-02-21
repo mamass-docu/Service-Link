@@ -104,10 +104,15 @@ const CustomerProfileScreen = ({ navigation }) => {
         style: "destructive",
         onPress: async () => {
           try {
-            await update("users", userId, {
-              isOnline: false,
-              lastSeen: serverTimestamp(),
-            });
+            await update(
+              "users",
+              userId,
+              {
+                isOnline: false,
+                lastSeen: serverTimestamp(),
+              },
+              false
+            );
 
             await auth.signOut();
 

@@ -5,25 +5,32 @@ import { AppProvider } from "./AppProvider";
 import { All } from "./registeredScreens/All";
 import { Providers } from "./registeredScreens/Providers";
 import { Customers } from "./registeredScreens/Customers";
+import { enableScreens } from "react-native-screens";
+import { Provider } from "react-redux";
+import store from "./src/state/store";
+
+enableScreens();
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <AppProvider>
-      <NavigationContainer>
-        <Stack.Navigator
-          screenOptions={{
-            headerShown: false,
-            animation: "none",
-            contentStyle: { backgroundColor: "white" },
-          }}
-        >
-          {All(Stack)}
-          {Providers(Stack)}
-          {Customers(Stack)}
-        </Stack.Navigator>
-      </NavigationContainer>
-    </AppProvider>
+    <Provider store={store}>
+      <AppProvider>
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              animation: "none",
+              contentStyle: { backgroundColor: "white" },
+            }}
+          >
+            {All(Stack)}
+            {Providers(Stack)}
+            {Customers(Stack)}
+          </Stack.Navigator>
+        </NavigationContainer>
+      </AppProvider>
+    </Provider>
   );
 }

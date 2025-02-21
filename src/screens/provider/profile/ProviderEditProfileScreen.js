@@ -19,11 +19,12 @@ import { useFocusEffect } from "@react-navigation/native";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../../firebase";
 import { find, update } from "../../../databaseHelper";
+import { updateProviderUserName } from "../../../db/UpdateUser";
 
 export default function ProviderEditProfileScreen({ navigation }) {
-  const { userId, userEmail, setUserName } = useAppContext();
+  const { userId, userName, userEmail, setUserName } = useAppContext();
 
-  const [name, setName] = useState(null);
+  const [name, setName] = useState(userName);
   const [phoneNumber, setPhoneNumber] = useState(null);
   const [address, setAddress] = useState(null);
 
@@ -31,10 +32,10 @@ export default function ProviderEditProfileScreen({ navigation }) {
     useCallback(() => {
       async function refresh() {
         try {
-          const userData = await find("users", userId, (snap) => snap.data());
+          const snap = await find("users", userId);
+          const userData = snap.data();
           // const userSnapshot = await getDoc(doc(db, "users", userId));
 
-          setName(userData.name);
           setPhoneNumber(userData.phoneNumber);
           setAddress(userData.address);
         } catch (error) {
@@ -51,6 +52,9 @@ export default function ProviderEditProfileScreen({ navigation }) {
       phoneNumber: phoneNumber,
       address: address,
     });
+
+    if (userName !== name) await updateProviderUserName(userId, name);
+
     // await updateDoc(doc(db, "users", userId), {
     //   name: name,
     //   phoneNumber: phoneNumber,

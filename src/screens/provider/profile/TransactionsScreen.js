@@ -78,6 +78,7 @@ const TransactionScreen = ({ navigation }) => {
   const callback = async () => {
     const snapData = await get(
       "bookings",
+      null,
       where("providerId", "==", userId)
       // where("status", "!=", "Rejected")
     );

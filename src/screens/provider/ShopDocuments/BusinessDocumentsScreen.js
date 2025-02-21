@@ -1,5 +1,5 @@
 // src/screens/ServiceProvider/BusinessDocumentsScreen.js
-import React, { useState } from 'react';
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -11,92 +11,154 @@ import {
   Platform,
   Alert,
   Image,
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { selectImage } from "../../../ImageSelector";
+import { useFocusEffect } from "@react-navigation/native";
+import { find, get, set, setIsLoading, where } from "../../../databaseHelper";
+import { useAppContext } from "../../../../AppProvider";
+import { uploadImage } from "../../../cloudinary";
 
 const BusinessDocumentsScreen = ({ navigation }) => {
+  // const [businessPermitImage, setBusinessPermitImage] = useState(null);
+  // const [governmentIdImage, setGovernmentIdImage] = useState(null);
+  // const [proofOfIncomeImage, setProofOfIncomeImage] = useState(null);
+  // const [certificationImage, setCertificationImage] = useState(null);
+  const { userId } = useAppContext();
+
   const [documents, setDocuments] = useState({
-    business_permit: null,
-    gov_id: null,
+    businessPermit: null,
+    govId: null,
+    proofOfIncome: null,
+    certification: null,
+  });
+  const [currentDocuments, setCurrentDocuments] = useState({
+    businessPermit: null,
+    govId: null,
+    proofOfIncome: null,
     certification: null,
   });
 
   const documentTypes = [
     {
-      id: 'business_permit',
-      title: 'Business Permit/DTI Registration',
-      description: 'Upload a clear copy of your business permit',
+      id: "businessPermit",
+      title: "Business Permit/DTI Registration",
+      description: "Upload a clear copy of your business permit",
       required: true,
     },
     {
-      id: 'gov_id',
-      title: 'Valid Government ID',
-      description: 'Upload any valid government ID',
+      id: "govId",
+      title: "Valid Government ID",
+      description: "Upload any valid government ID",
       required: true,
     },
     {
-      id: 'proof_of_income', // Added new document type
-      title: 'Proof of Income',
-      description: 'Upload your latest income statement or tax return',
+      id: "proofOfIncome", // Added new document type
+      title: "Proof of Income",
+      description: "Upload your latest income statement or tax return",
       required: true,
     },
     {
-      id: 'certification',
-      title: 'Professional Certifications',
-      description: 'Upload relevant certifications',
+      id: "certification",
+      title: "Professional Certifications",
+      description: "Upload relevant certifications",
       required: false,
     },
   ];
 
+  const fetchCurrent = async () => {
+    try {
+      const snap = await find("providerDocuments", userId, false);
+      if (!snap.exists()) return;
+      setCurrentDocuments(snap.data());
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCurrent();
+    }, [])
+  );
+
   const pickImage = async (documentId) => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
+      const image = await selectImage();
+      if (image == null) return;
 
-      if (!result.canceled && result.assets[0].uri) {
-        setDocuments(prev => ({
-          ...prev,
-          [documentId]: result.assets[0].uri
-        }));
-      }
+      setDocuments((prev) => ({
+        ...prev,
+        [documentId]: image,
+      }));
     } catch (error) {
-      console.log('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
+      console.log("Error picking image:", error);
+      Alert.alert("Error", "Failed to pick image. Please try again.");
     }
   };
 
   const validateDocuments = () => {
-    const requiredDocs = documentTypes.filter(doc => doc.required);
-    const missingDocs = requiredDocs.filter(doc => !documents[doc.id]);
+    const requiredDocs = documentTypes.filter((doc) => doc.required);
+    const missingDocs = requiredDocs.filter(
+      (doc) => !documents[doc.id] && !currentDocuments[doc.id]
+    );
 
     if (missingDocs.length > 0) {
       Alert.alert(
-        'Missing Documents',
-        `Please upload the following required documents:\n${missingDocs.map(doc => `• ${doc.title}`).join('\n')}`
+        "Missing Documents",
+        `Please upload the following required documents:\n${missingDocs
+          .map((doc) => `• ${doc.title}`)
+          .join("\n")}`
       );
       return false;
     }
     return true;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateDocuments()) return;
 
-    Alert.alert(
-      'Success',
-      'Documents uploaded successfully!',
-      [
+    try {
+      setIsLoading(true);
+
+      let data = {};
+      if (documents.businessPermit)
+        data.businessPermit = await uploadImage(
+          documents.businessPermit,
+          userId + "bpermit"
+        );
+      if (documents.govId)
+        data.govId = await uploadImage(documents.govId, userId + "govid");
+      if (documents.proofOfIncome)
+        data.proofOfIncome = await uploadImage(
+          documents.proofOfIncome,
+          userId + "profofincome"
+        );
+
+      if (documents.certification)
+        data.certification = await uploadImage(
+          documents.certification,
+          userId + "certificate"
+        );
+
+      await set("providerDocuments", userId, data, false);
+
+      Alert.alert("Success", "Documents uploaded successfully!", [
         {
-          text: 'OK',
-          onPress: () => navigation.navigate('VerificationStatus', { documentsUploaded: true })
-        }
-      ]
-    );
+          text: "OK",
+          onPress: () =>
+            navigation.navigate("VerificationStatus", {
+              documentsUploaded: true,
+            }),
+        },
+      ]);
+    } catch (e) {
+      console.log(e);
+
+      alert("Error saving!!!");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const DocumentCard = ({ document }) => (
@@ -104,20 +166,24 @@ const BusinessDocumentsScreen = ({ navigation }) => {
       <View style={styles.documentHeader}>
         <Text style={styles.documentTitle}>
           {document.title}
-          {document.required && <Text style={styles.requiredTag}> *Required</Text>}
+          {document.required && (
+            <Text style={styles.requiredTag}> *Required</Text>
+          )}
         </Text>
         <Text style={styles.documentDescription}>{document.description}</Text>
       </View>
 
-      {documents[document.id] ? (
+      {documents[document.id] ?? currentDocuments[document.id] ? (
         <View style={styles.uploadedContainer}>
-          <Image 
-            source={{ uri: documents[document.id] }} 
-            style={styles.uploadedImage} 
+          <Image
+            source={{
+              uri: documents[document.id]?.uri ?? currentDocuments[document.id],
+            }}
+            style={styles.uploadedImage}
           />
           <View style={styles.uploadedInfo}>
-            <Text style={styles.uploadedStatus}>Document Uploaded</Text>
-            <TouchableOpacity 
+            <Text style={styles.uploadedStatus}>Document Loaded</Text>
+            <TouchableOpacity
               style={styles.replaceButton}
               onPress={() => pickImage(document.id)}
             >
@@ -127,7 +193,7 @@ const BusinessDocumentsScreen = ({ navigation }) => {
           </View>
         </View>
       ) : (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.uploadButton}
           onPress={() => pickImage(document.id)}
         >
@@ -147,7 +213,7 @@ const BusinessDocumentsScreen = ({ navigation }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -164,10 +230,7 @@ const BusinessDocumentsScreen = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      <TouchableOpacity 
-        style={styles.saveButton}
-        onPress={handleSave}
-      >
+      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Submit Documents</Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -177,27 +240,27 @@ const BusinessDocumentsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: "#F5F7FA",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
-    backgroundColor: '#FFFFFF',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 16 : 16,
+    backgroundColor: "#FFFFFF",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 16 : 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E8ECF2',
+    borderBottomColor: "#E8ECF2",
   },
   backButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontWeight: "700",
+    color: "#1A1A1A",
     marginLeft: 12,
   },
   content: {
@@ -207,56 +270,56 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   documentCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     marginBottom: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: '#E8ECF2',
+    borderColor: "#E8ECF2",
   },
   documentHeader: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E8ECF2',
+    borderBottomColor: "#E8ECF2",
   },
   documentTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: "600",
+    color: "#1A1A1A",
     marginBottom: 4,
   },
   documentDescription: {
     fontSize: 14,
-    color: '#666666',
+    color: "#666666",
   },
   requiredTag: {
-    color: '#FF4444',
+    color: "#FF4444",
     fontSize: 12,
   },
   uploadButton: {
     padding: 20,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: "#CCCCCC",
     margin: 16,
     borderRadius: 12,
   },
   uploadContent: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   uploadText: {
     fontSize: 14,
-    color: '#666666',
+    color: "#666666",
     marginTop: 8,
   },
   uploadSubtext: {
     fontSize: 12,
-    color: '#999999',
+    color: "#999999",
     marginTop: 4,
   },
   uploadedContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
   },
   uploadedImage: {
@@ -270,29 +333,29 @@ const styles = StyleSheet.create({
   },
   uploadedStatus: {
     fontSize: 14,
-    color: '#4CAF50',
+    color: "#4CAF50",
     marginBottom: 4,
   },
   replaceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   replaceButtonText: {
     fontSize: 14,
-    color: '#007AFF',
+    color: "#007AFF",
     marginLeft: 4,
   },
   saveButton: {
-    backgroundColor: '#FFB800',
+    backgroundColor: "#FFB800",
     margin: 16,
     padding: 16,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

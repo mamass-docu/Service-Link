@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -10,9 +10,12 @@ import {
   Platform,
   Alert,
   Switch,
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { find, set } from "../../../databaseHelper";
+import { useAppContext } from "../../../../AppProvider";
+import { useFocusEffect } from "@react-navigation/native";
 
 const DayScheduleCard = ({ day, schedule, onToggle, onTimePress }) => {
   return (
@@ -20,26 +23,28 @@ const DayScheduleCard = ({ day, schedule, onToggle, onTimePress }) => {
       <View style={styles.daySection}>
         <View>
           <Text style={styles.dayName}>{day.label}</Text>
-          <Text style={[
-            styles.statusText, 
-            { color: schedule.isOpen ? '#4CAF50' : '#FF4444' }
-          ]}>
-            {schedule.isOpen ? 'Open' : 'Closed'}
+          <Text
+            style={[
+              styles.statusText,
+              { color: schedule.isOpen ? "#4CAF50" : "#FF4444" },
+            ]}
+          >
+            {schedule.isOpen ? "Open" : "Closed"}
           </Text>
         </View>
         <Switch
           value={schedule.isOpen}
           onValueChange={() => onToggle(day.key)}
-          trackColor={{ false: '#E8ECF2', true: '#4CAF50' }}
+          trackColor={{ false: "#E8ECF2", true: "#4CAF50" }}
           thumbColor="#FFFFFF"
         />
       </View>
 
       {schedule.isOpen && (
         <View style={styles.timeSection}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.timeBlock}
-            onPress={() => onTimePress(day.key, 'open')}
+            onPress={() => onTimePress(day.key, "open")}
           >
             <Text style={styles.timeLabel}>Opens</Text>
             <View style={styles.timeDisplay}>
@@ -52,9 +57,9 @@ const DayScheduleCard = ({ day, schedule, onToggle, onTimePress }) => {
             <View style={styles.separatorLine} />
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.timeBlock}
-            onPress={() => onTimePress(day.key, 'close')}
+            onPress={() => onTimePress(day.key, "close")}
           >
             <Text style={styles.timeLabel}>Closes</Text>
             <View style={styles.timeDisplay}>
@@ -69,14 +74,16 @@ const DayScheduleCard = ({ day, schedule, onToggle, onTimePress }) => {
 };
 
 const BusinessHoursScreen = ({ navigation }) => {
+  const { userId } = useAppContext();
+
   const [businessHours, setBusinessHours] = useState({
-    monday: { isOpen: false, openTime: '9:00 AM', closeTime: '5:00 PM' },
-    tuesday: { isOpen: false, openTime: '9:00 AM', closeTime: '5:00 PM' },
-    wednesday: { isOpen: false, openTime: '9:00 AM', closeTime: '5:00 PM' },
-    thursday: { isOpen: false, openTime: '9:00 AM', closeTime: '5:00 PM' },
-    friday: { isOpen: false, openTime: '9:00 AM', closeTime: '5:00 PM' },
-    saturday: { isOpen: false, openTime: '9:00 AM', closeTime: '5:00 PM' },
-    sunday: { isOpen: false, openTime: '9:00 AM', closeTime: '5:00 PM' },
+    monday: { isOpen: false, openTime: "9:00 AM", closeTime: "5:00 PM" },
+    tuesday: { isOpen: false, openTime: "9:00 AM", closeTime: "5:00 PM" },
+    wednesday: { isOpen: false, openTime: "9:00 AM", closeTime: "5:00 PM" },
+    thursday: { isOpen: false, openTime: "9:00 AM", closeTime: "5:00 PM" },
+    friday: { isOpen: false, openTime: "9:00 AM", closeTime: "5:00 PM" },
+    saturday: { isOpen: false, openTime: "9:00 AM", closeTime: "5:00 PM" },
+    sunday: { isOpen: false, openTime: "9:00 AM", closeTime: "5:00 PM" },
   });
 
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -85,22 +92,38 @@ const BusinessHoursScreen = ({ navigation }) => {
   const [tempTime, setTempTime] = useState(new Date());
 
   const days = [
-    { key: 'monday', label: 'Monday' },
-    { key: 'tuesday', label: 'Tuesday' },
-    { key: 'wednesday', label: 'Wednesday' },
-    { key: 'thursday', label: 'Thursday' },
-    { key: 'friday', label: 'Friday' },
-    { key: 'saturday', label: 'Saturday' },
-    { key: 'sunday', label: 'Sunday' },
+    { key: "monday", label: "Monday" },
+    { key: "tuesday", label: "Tuesday" },
+    { key: "wednesday", label: "Wednesday" },
+    { key: "thursday", label: "Thursday" },
+    { key: "friday", label: "Friday" },
+    { key: "saturday", label: "Saturday" },
+    { key: "sunday", label: "Sunday" },
   ];
 
+  const fetchBusinessHours = async () => {
+    try {
+      const snap = await find("providerBusinessHours", userId, false);
+      if (!snap.exists()) return;
+      setBusinessHours(snap.data());
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchBusinessHours();
+    }, [])
+  );
+
   const toggleDay = (day) => {
-    setBusinessHours(prev => ({
+    setBusinessHours((prev) => ({
       ...prev,
       [day]: {
         ...prev[day],
-        isOpen: !prev[day].isOpen
-      }
+        isOpen: !prev[day].isOpen,
+      },
     }));
   };
 
@@ -113,41 +136,41 @@ const BusinessHoursScreen = ({ navigation }) => {
   const handleTimeChange = (event, selectedTime) => {
     setShowTimePicker(false);
     if (selectedTime && selectedDay && selectedType) {
-      const timeString = selectedTime.toLocaleTimeString([], { 
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
+      const timeString = selectedTime.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
       });
-      
-      setBusinessHours(prev => ({
+
+      setBusinessHours((prev) => ({
         ...prev,
         [selectedDay]: {
           ...prev[selectedDay],
-          [`${selectedType}Time`]: timeString
-        }
+          [`${selectedType}Time`]: timeString,
+        },
       }));
     }
   };
 
-  const handleSave = () => {
-    const hasOpenDays = Object.values(businessHours).some(day => day.isOpen);
+  const handleSave = async () => {
+    const hasOpenDays = Object.values(businessHours).some((day) => day.isOpen);
     if (!hasOpenDays) {
-      Alert.alert('Error', 'Please set business hours for at least one day');
+      Alert.alert("Error", "Please set business hours for at least one day");
       return;
     }
 
-    Alert.alert(
-      'Success',
-      'Business hours saved successfully!',
-      [
+    try {
+      await set("providerBusinessHours", userId, businessHours, false);
+
+      Alert.alert("Success", "Business hours saved successfully!", [
         {
-          text: 'OK',
-          onPress: () => navigation.navigate('VerificationStatus', { 
-            businessHoursSet: true 
-          })
-        }
-      ]
-    );
+          text: "OK",
+          onPress: () => navigation.goBack(),
+        },
+      ]);
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   return (
@@ -156,7 +179,7 @@ const BusinessHoursScreen = ({ navigation }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -171,7 +194,8 @@ const BusinessHoursScreen = ({ navigation }) => {
         <View style={styles.infoContainer}>
           <Text style={styles.infoTitle}>Set Your Schedule</Text>
           <Text style={styles.infoText}>
-            Configure your business hours for each day of the week. These hours will be shown to customers.
+            Configure your business hours for each day of the week. These hours
+            will be shown to customers.
           </Text>
         </View>
 
@@ -190,10 +214,7 @@ const BusinessHoursScreen = ({ navigation }) => {
 
       {/* Save Button */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity 
-          style={styles.saveButton}
-          onPress={handleSave}
-        >
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Save Schedule</Text>
         </TouchableOpacity>
       </View>
@@ -214,18 +235,18 @@ const BusinessHoursScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 16 : 16,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 16 : 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E8ECF2',
+    borderBottomColor: "#E8ECF2",
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -233,16 +254,16 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 8,
   },
   headerTitle: {
     flex: 1,
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    textAlign: 'center',
+    fontWeight: "700",
+    color: "#1A1A1A",
+    textAlign: "center",
     marginRight: 40,
   },
   headerRight: {
@@ -253,31 +274,31 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#E8ECF2',
+    borderBottomColor: "#E8ECF2",
   },
   infoTitle: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#333333',
+    fontWeight: "700",
+    color: "#333333",
     marginBottom: 8,
   },
   infoText: {
     fontSize: 14,
-    color: '#666666',
+    color: "#666666",
     lineHeight: 20,
   },
   scheduleContainer: {
     padding: 16,
   },
   scheduleCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     marginBottom: 12,
     padding: 16,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -286,42 +307,42 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   daySection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   dayName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333333',
+    fontWeight: "600",
+    color: "#333333",
     marginBottom: 4,
   },
   statusText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   timeSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E8ECF2',
+    borderTopColor: "#E8ECF2",
   },
   timeBlock: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   timeLabel: {
     fontSize: 12,
-    color: '#666666',
+    color: "#666666",
     marginBottom: 8,
   },
   timeDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F7FA',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F7FA",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -329,34 +350,34 @@ const styles = StyleSheet.create({
   timeText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#333333',
-    fontWeight: '500',
+    color: "#333333",
+    fontWeight: "500",
   },
   timeSeparator: {
     width: 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   separatorLine: {
     width: 20,
     height: 1,
-    backgroundColor: '#E8ECF2',
+    backgroundColor: "#E8ECF2",
   },
   bottomBar: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E8ECF2',
+    borderTopColor: "#E8ECF2",
   },
   saveButton: {
-    backgroundColor: '#FFB800',
+    backgroundColor: "#FFB800",
     padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

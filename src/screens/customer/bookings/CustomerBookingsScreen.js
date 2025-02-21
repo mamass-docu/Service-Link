@@ -14,7 +14,7 @@ import { db } from "../../../firebase";
 import { useAppContext } from "../../../../AppProvider";
 import { query, getDocs, collection } from "firebase/firestore";
 import { useFocusEffect } from "@react-navigation/native";
-import { get, where } from "../../../databaseHelper";
+import { find, get, where } from "../../../databaseHelper";
 // import JobStatusScreen from "../"; // Import JobStatusScreen
 
 const BookingCard = ({ booking, navigation, userRole }) => {
@@ -60,7 +60,8 @@ const BookingCard = ({ booking, navigation, userRole }) => {
       <View style={styles.cardHeader}>
         <Image
           source={{
-            uri: "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=375&q=80",
+            uri: booking.providerImage,
+            // uri: "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=375&q=80",
           }}
           style={styles.providerImage}
         />
@@ -145,6 +146,7 @@ const CustomerBookingsScreen = ({ navigation }) => {
         try {
           const querySnapshot = await get(
             "bookings",
+            null,
             where("customerId", "==", userId),
             where("status", "!=", "Cancelled")
           );
@@ -157,15 +159,19 @@ const CustomerBookingsScreen = ({ navigation }) => {
           let completed = [];
           for (const serviceDoc of querySnapshot.docs) {
             const serviceData = serviceDoc.data();
+            const usnap = await find("users", serviceData.providerId, false);
+            const providerImage = usnap.exists() ? usnap.data().image : null;
             if (serviceData.status != "Completed")
               upcoming.push({
                 id: serviceDoc.id,
                 ...serviceData,
+                providerImage: providerImage,
               });
             else
               completed.push({
                 id: serviceDoc.id,
                 ...serviceData,
+                providerImage: providerImage,
               });
           }
 

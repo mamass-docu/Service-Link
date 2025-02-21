@@ -25,7 +25,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../../../firebase";
-import { get, update, where } from "../../../databaseHelper";
+import { find, get, update, where } from "../../../databaseHelper";
 
 const { width } = Dimensions.get("window");
 
@@ -108,6 +108,7 @@ const HomeScreen = () => {
     try {
       const snapshot = await get(
         "bookings",
+        false,
         where("providerId", "==", userId),
         where("status", "==", "Pending")
       );
@@ -118,14 +119,28 @@ const HomeScreen = () => {
       //     where("status", "==", "Pending")
       //   )
       // );
-      setUpcomingJobs(
-        snapshot.docs.map((item) => {
-          return {
-            id: item.id,
-            ...item.data(),
-          };
-        })
-      );
+      let temp = [];
+      for (let i in snapshot.docs) {
+        const d = snapshot.docs[i].data();
+        const usersnap = await find("users", d.customerId, false);
+        console.log(usersnap.data());
+        temp.push({
+          id: usersnap.id,
+          ...d,
+          customerImage: usersnap.exists() ? usersnap.data().image : null,
+        });
+      }
+      setUpcomingJobs(temp);
+      // setUpcomingJobs(
+      //   snapshot.docs.map(async (item) => {
+      //     const usersnap = await find("users", item.customerId, false);
+      //     return {
+      //       id: item.id,
+      //       ...item.data(),
+      //       customerImage: usersnap.exists() ? usersnap.data().image : null,
+      //     };
+      //   })
+      // );
       // let temp = [];
 
       // for (const bookingsDoc of snapshot.docs) {
@@ -164,10 +179,15 @@ const HomeScreen = () => {
         {
           text: "Accept",
           onPress: async () => {
-            await update("bookings", job.id, {
-              status: "Confirmed",
-              confirmedAt: new Date().toISOString(),
-            });
+            await update(
+              "bookings",
+              job.id,
+              {
+                status: "Confirmed",
+                confirmedAt: new Date().toISOString(),
+              },
+              false
+            );
             // await updateDoc(doc(db, "bookings", job.id), {
             //   status: "Confirmed",
             //   confirmedAt: new Date().toISOString(),
@@ -194,10 +214,15 @@ const HomeScreen = () => {
         {
           text: "Decline",
           onPress: async () => {
-            await update("bookings", job.id, {
-              status: "Rejected",
-              rejectedAt: new Date().toISOString(),
-            });
+            await update(
+              "bookings",
+              job.id,
+              {
+                status: "Rejected",
+                rejectedAt: new Date().toISOString(),
+              },
+              false
+            );
             // await updateDoc(doc(db, "bookings", job.id), {
             //   status: "Rejected",
             //   rejectedAt: new Date().toISOString(),

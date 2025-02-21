@@ -62,6 +62,7 @@ export default function TaskListScreen({ navigation, route }) {
         try {
           const snapshot = await get(
             "services",
+            null,
             where("service", "==", service)
           );
           // const snapshot = await getDocs(

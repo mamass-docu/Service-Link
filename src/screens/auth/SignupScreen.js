@@ -18,10 +18,10 @@ import { MaterialIcons, Feather } from "@expo/vector-icons";
 import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { app, db } from "../../firebase";
+import { isLoading, setIsLoading } from "../../databaseHelper";
 
 export default function SignupScreen({ navigation, route }) {
   const auth = getAuth(app);
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { role } = route.params;
@@ -96,7 +96,6 @@ export default function SignupScreen({ navigation, route }) {
         role: role,
         active: true,
       });
-      setIsLoading(false);
 
       Alert.alert("Success", "Account created successfully!", [
         {
@@ -109,7 +108,6 @@ export default function SignupScreen({ navigation, route }) {
         },
       ]);
     } catch (error) {
-      setIsLoading(false);
       console.error("Signup error:", error);
 
       let errorMessage = "An error occurred during signup";
@@ -132,6 +130,8 @@ export default function SignupScreen({ navigation, route }) {
       }
 
       Alert.alert("Error", errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -263,9 +263,9 @@ export default function SignupScreen({ navigation, route }) {
             <TouchableOpacity
               style={styles.signupButton}
               onPress={handleSignup}
-              disabled={isLoading}
+              disabled={isLoading()}
             >
-              {isLoading ? (
+              {isLoading() ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.signupButtonText}>Create Account</Text>

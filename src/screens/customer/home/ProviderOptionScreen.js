@@ -17,7 +17,7 @@ import BookServiceScreen from "../bookings/BookServiceScreen";
 import { db } from "../../../firebase";
 import { useFocusEffect } from "@react-navigation/native";
 import { collection, getDocs, query } from "firebase/firestore";
-import { all, get, where } from "../../../databaseHelper";
+import { get, where } from "../../../databaseHelper";
 
 const ServiceDetailsModal = ({ visible, provider, onClose, onPress }) => {
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -183,6 +183,7 @@ export default function ProviderOptionScreen({ navigation, route }) {
         try {
           const snap = await get(
             "providerServices",
+            null,
             where("service", "==", service)
           );
 

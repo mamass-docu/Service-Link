@@ -17,17 +17,17 @@ import { MaterialIcons, Feather } from "@expo/vector-icons";
 import { db, app } from "../../firebase";
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 import { collection, query, getDocs } from "firebase/firestore";
-import { get, where } from "../../databaseHelper";
+import { isLoading, setIsLoading, get, where } from "../../databaseHelper";
 
 export default function ForgotPassword({ navigation }) {
   const auth = getAuth(app);
   const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
   const validateEmail = async (email) => {
     try {
       const querySnapshot = await get(
         "users",
+        null,
         where("email", "==", email.toLowerCase())
       );
       // const querySnapshot = await getDocs(
@@ -56,7 +56,6 @@ export default function ForgotPassword({ navigation }) {
 
       if (!isValidUser) {
         Alert.alert("Error", "No account found with this email");
-        setIsLoading(false);
         return;
       }
 
@@ -178,9 +177,9 @@ export default function ForgotPassword({ navigation }) {
           <TouchableOpacity
             style={[styles.resetButton, !email && styles.resetButtonDisabled]}
             onPress={handleResetPassword}
-            disabled={isLoading || !email}
+            disabled={isLoading() || !email}
           >
-            {isLoading ? (
+            {isLoading() ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.resetButtonText}>Send Reset Link</Text>

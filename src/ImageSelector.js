@@ -1,8 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 
 const selectImage = async () => {
-  console.log("asfdsaf");
-
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
   if (status !== "granted") {

@@ -15,11 +15,10 @@ import { Feather } from "@expo/vector-icons";
 import { db } from "../../firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { useAppContext } from "../../../AppProvider";
-import { update } from "../../databaseHelper";
+import { update, isLoading, setIsLoading } from "../../databaseHelper";
 
 const CustomerTermsAndConditionsScreen = ({ navigation }) => {
   const [isAccepted, setIsAccepted] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const { userId } = useAppContext();
 
   const handleAcceptTerms = async () => {
@@ -106,9 +105,9 @@ const CustomerTermsAndConditionsScreen = ({ navigation }) => {
             !isAccepted && styles.acceptButtonDisabled,
           ]}
           onPress={handleAcceptTerms}
-          disabled={!isAccepted || isLoading}
+          disabled={!isAccepted || isLoading()}
         >
-          {isLoading ? (
+          {isLoading() ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={styles.acceptButtonText}>Accept & Continue</Text>

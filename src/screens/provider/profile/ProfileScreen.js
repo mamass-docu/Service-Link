@@ -25,6 +25,7 @@ import { update, serverTimestamp } from "../../../databaseHelper";
 import { getAuth } from "firebase/auth";
 import { selectImage } from "../../../ImageSelector";
 import { uploadImage } from "../../../cloudinary";
+import { updateProviderUserImage } from "../../../db/UpdateUser";
 
 const ProfileScreen = ({ navigation }) => {
   const { userName, userId, userImage, setUserImage } = useAppContext();
@@ -61,10 +62,15 @@ const ProfileScreen = ({ navigation }) => {
         onPress: async () => {
           try {
             const auth = getAuth(app);
-            await update("users", userId, {
-              isOnline: false,
-              lastSeen: serverTimestamp(),
-            });
+            await update(
+              "users",
+              userId,
+              {
+                isOnline: false,
+                lastSeen: serverTimestamp(),
+              },
+              false
+            );
 
             await auth.signOut();
 
@@ -98,22 +104,19 @@ const ProfileScreen = ({ navigation }) => {
     const image = await selectImage();
     if (!image) return;
 
-    const imageName = image.fileName;
-    const imageExtension = imageName.substring(imageName.lastIndexOf("."));
-    const filename = `${userId}${imageExtension}`;
+    // const imageName = image.fileName;
+    // const imageExtension = imageName.substring(imageName.lastIndexOf("."));
+    // const filename = `${userId}${imageExtension}`;
 
     try {
       // await deleteImage(userImage);
-
-      const imgUrl = await uploadImage({
-        uri: image.uri,
-        type: "image/jpeg",
-        name: filename,
-      });
+      const imgUrl = await uploadImage(image, userId);
 
       await update("users", userId, {
         image: imgUrl,
       });
+
+      await updateProviderUserImage(userId, imgUrl);
 
       setUserImage(imgUrl);
       alert("Image uploaded successfully!");

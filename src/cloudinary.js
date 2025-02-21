@@ -1,14 +1,17 @@
 import axios from "axios";
 
-const uploadImage = async (file) => {
+const uploadImage = async (file, filename) => {
   const formData = new FormData();
-  //   const param = {
-  //     uri: uri,
-  //     type: "image/jpeg",
-  //     name: filename,
-  //   };
+  const imageExtension = file.fileName.substring(
+    file.fileName.lastIndexOf(".")
+  );
+  const param = {
+    uri: file.uri,
+    type: file.type,
+    name: filename + imageExtension,
+  };
 
-  formData.append("file", file);
+  formData.append("file", param);
   formData.append("upload_preset", "upload_file");
 
   const res = await axios.post(
