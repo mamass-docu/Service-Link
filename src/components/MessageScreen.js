@@ -7,7 +7,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   Image,
+  ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { db } from "../firebase";
@@ -31,39 +32,42 @@ const MessageScreen = ({ route, navigation }) => {
   const { userId } = useAppContext();
 
   const { otherUserId, otherUserName, otherUserImage } = route.params;
-
-  const getMessages = () => {
-    const unsubscribe = onSnapshot(
-      query(
-        collection(db, "messages"),
-        where("participants", "array-contains", userId),
-        orderBy("sentAt", "asc")
-      ),
-      (snapshot) => {
-        let temp = [];
-        snapshot.docs.forEach((dc) => {
-          const message = dc.data();
-
-          if (message.participants.some((mess) => mess == otherUserId))
-            temp.push({
-              id: dc.id,
-              message: message.message,
-              isUserSender: message.senderId == userId,
-              seen: message.seen,
-              sentAt: message.sentAt,
-            });
-        });
-        setMessages(temp);
-      }
+  const mounted = useRef(true);
+  // useFocusEffect(useCallback(() => {
+  useEffect(() => {
+    const messageQuery = query(
+      collection(db, "messages"),
+      where("participants", "array-contains", userId),
+      orderBy("sentAt", "asc")
     );
+    const unsubscribe = onSnapshot(messageQuery, (snapshot) => {
+      if (!mounted.current) return;
+      let temp = [];
+      snapshot.docs.forEach((dc) => {
+        const message = dc.data();
+
+        if (message.participants.some((mess) => mess == otherUserId)) {
+          temp.push({
+            id: dc.id,
+            message: message.message,
+            isUserSender: message.senderId == userId,
+            seen: message.seen,
+            sentAt: message.sentAt,
+          });
+        }
+      });
+      if (!mounted.current || temp.length == 0) return;
+
+      setMessages(temp);
+    });
 
     return () => {
-      unsubscribe();
+      mounted.current = false;
       console.log("unsubs message");
+      unsubscribe();
+      // setMessages([]);
     };
-  };
-
-  useFocusEffect(useCallback(getMessages, []));
+  }, []);
 
   const sendMessage = async () => {
     if (newMessage.trim() == "") return;
@@ -93,6 +97,7 @@ const MessageScreen = ({ route, navigation }) => {
 
   const renderItem = ({ item }) => (
     <View
+      key={item.id}
       style={[
         styles.messageRow,
         item.isUserSender ? styles.sentMessageRow : styles.receivedMessageRow,
@@ -149,12 +154,18 @@ const MessageScreen = ({ route, navigation }) => {
         <Icon name="dots-vertical" size={24} color="#333" />
       </View>
 
-      <FlatList
+      <ScrollView contentContainerStyle={styles.messageList}>
+        {messages.map((item) => renderItem({ item }))}
+      </ScrollView>
+      {/* <FlatList
         data={messages}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.messageList}
-      />
+        initialNumToRender={15} 
+        maxToRenderPerBatch={5} 
+        windowSize={21}
+      /> */}
 
       {/* <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}

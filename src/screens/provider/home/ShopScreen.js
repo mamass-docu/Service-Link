@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,63 +12,33 @@ import {
   TextInput,
   Alert,
   Dimensions,
-} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import * as ImagePicker from 'expo-image-picker';
+} from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { useAppContext } from "../../../../AppProvider";
+import { add, find, get, remove, update, where } from "../../../databaseHelper";
+import { selectImage } from "../../../ImageSelector";
+import { updateProviderUserImage } from "../../../db/UpdateUser";
+import { uploadImage } from "../../../cloudinary";
 
 const ViewShopScreen = ({ navigation }) => {
-  const [activeTab, setActiveTab] = useState('services');
+  const { userId, userName, userImage, userEmail, setUserImage } =
+    useAppContext();
+
+  const [activeTab, setActiveTab] = useState("services");
   const [showAddService, setShowAddService] = useState(false);
   const [showEditService, setShowEditService] = useState(false);
   const [editingService, setEditingService] = useState(null);
-  
-  const [shopInfo, setShopInfo] = useState({
-    name: "CleanPro Laundry Services",
-    image: "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?ixlib=rb-4.0.3",
-    description: "Professional laundry services with state-of-the-art equipment. We provide quality cleaning for all types of garments with eco-friendly detergents.",
-    email: "cleanpro@example.com",
-    phone: "+63 912 345 6789",
-    address: "123 Main Street, Makati City, Metro Manila",
-    rating: 4.8,
-    reviews: 156
-  });
+
+  const [shopInfo, setShopInfo] = useState({});
 
   const [newService, setNewService] = useState({
-    name: '',
-    price: '',
-    description: '',
+    name: null,
+    price: null,
+    discountedPrice: null,
+    description: null,
   });
 
-  const [services, setServices] = useState([
-    {
-      id: 1,
-      name: "Regular Wash & Fold",
-      price: "₱75/kg",
-      image: "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?ixlib=rb-4.0.3",
-      description: "Regular washing, drying, and folding service for everyday clothes."
-    },
-    {
-      id: 2,
-      name: "Dry Cleaning",
-      price: "₱250/piece",
-      image: "https://black-and-white.co.in/wp-content/uploads/2024/04/what-is-dry-cleaning.jpg",
-      description: "Professional dry cleaning for delicate garments and formal wear."
-    },
-    {
-      id: 3,
-      name: "Express Service",
-      price: "₱100/kg",
-      image: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?ixlib=rb-4.0.3",
-      description: "Same-day washing and folding service for urgent needs."
-    },
-    {
-      id: 4,
-      name: "Bedding & Linens",
-      price: "₱150/kg",
-      image: "https://pyxis.nymag.com/v1/imgs/8b2/520/9b87009ca861876a5849df78499bef2e0c-EvergreenLinen.1x.rsquare.w1400.jpg",
-      description: "Specialized cleaning for bedsheets, blankets, and other linens."
-    }
-  ]);
+  const [services, setServices] = useState([]);
 
   const [reviews] = useState([
     {
@@ -76,8 +46,9 @@ const ViewShopScreen = ({ navigation }) => {
       user: "John Doe",
       rating: 5,
       date: "2023-11-01",
-      comment: "Excellent service! My clothes came back perfectly clean and fresh.",
-      avatar: "https://randomuser.me/api/portraits/men/1.jpg"
+      comment:
+        "Excellent service! My clothes came back perfectly clean and fresh.",
+      avatar: "https://randomuser.me/api/portraits/men/1.jpg",
     },
     {
       id: 2,
@@ -85,7 +56,7 @@ const ViewShopScreen = ({ navigation }) => {
       rating: 4,
       date: "2023-10-28",
       comment: "Very good service, but delivery was a bit delayed.",
-      avatar: "https://randomuser.me/api/portraits/women/2.jpg"
+      avatar: "https://randomuser.me/api/portraits/women/2.jpg",
     },
     {
       id: 3,
@@ -93,7 +64,7 @@ const ViewShopScreen = ({ navigation }) => {
       rating: 5,
       date: "2023-10-25",
       comment: "Best laundry service in town! Will definitely use again.",
-      avatar: "https://randomuser.me/api/portraits/men/3.jpg"
+      avatar: "https://randomuser.me/api/portraits/men/3.jpg",
     },
     {
       id: 4,
@@ -101,7 +72,7 @@ const ViewShopScreen = ({ navigation }) => {
       rating: 4,
       date: "2023-10-20",
       comment: "Professional staff and great quality cleaning.",
-      avatar: "https://randomuser.me/api/portraits/women/4.jpg"
+      avatar: "https://randomuser.me/api/portraits/women/4.jpg",
     },
     {
       id: 5,
@@ -109,109 +80,172 @@ const ViewShopScreen = ({ navigation }) => {
       rating: 5,
       date: "2023-10-15",
       comment: "They handled my delicate clothes with care. Very satisfied!",
-      avatar: "https://randomuser.me/api/portraits/men/5.jpg"
-    }
+      avatar: "https://randomuser.me/api/portraits/men/5.jpg",
+    },
   ]);
-    const handleEditShop = () => {
-    setEditingShop({...shopInfo});
+
+  const fetchData = async () => {
+    const userSnap = await find("users", userId, false);
+    const userData = userSnap.data();
+    setShopInfo({
+      description: userData.description,
+      phoneNumber: userData.phoneNumber,
+      address: userData.address,
+      service: userData.service,
+    });
+    fetchServices();
+  };
+
+  const fetchServices = async () => {
+    const snap = await get(
+      "providerServices",
+      false,
+      where("providerId", "==", userId)
+    );
+    setServices(
+      snap.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          task: data.task,
+          price: data.price,
+          discountedPrice: data.discountedPrice,
+          description: data.description,
+        };
+      })
+    );
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const updateProfileImage = async () => {
+    const image = await selectImage();
+    if (!image) return;
+
+    // const imageName = image.fileName;
+    // const imageExtension = imageName.substring(imageName.lastIndexOf("."));
+    // const filename = `${userId}${imageExtension}`;
+
+    try {
+      // await deleteImage(userImage);
+      const imgUrl = await uploadImage(image, userId);
+
+      await update(
+        "users",
+        userId,
+        {
+          image: imgUrl,
+        },
+        false
+      );
+
+      await updateProviderUserImage(userId, imgUrl);
+
+      setUserImage(imgUrl);
+      alert("Image uploaded successfully!");
+    } catch (e) {
+      alert(e);
+    }
+  };
+
+  const handleEditShop = () => {
+    setEditingShop({ ...shopInfo });
     setShowEditShop(true);
   };
 
-  const handleBannerImageSelect = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Please allow access to your photo library to change banner image.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 1,
-        aspect: [16, 9],
-        allowsEditing: true,
-      });
-
-      if (!result.canceled && result.assets[0].uri) {
-        setShopInfo({
-          ...shopInfo,
-          image: result.assets[0].uri
-        });
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to select image');
-    }
-  };
-
-  const handleAddService = () => {
-    if (!newService.name || !newService.price || !newService.description) {
-      Alert.alert('Error', 'Please fill in all fields');
+  const handleAddService = async () => {
+    if (
+      !newService.task ||
+      !newService.price ||
+      !newService.discountedPrice ||
+      !newService.description
+    ) {
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
-    
-    const newId = services.length > 0 ? Math.max(...services.map(s => s.id)) + 1 : 1;
-    const serviceToAdd = {
-      id: newId,
-      name: newService.name,
-      price: `₱${newService.price}`,
-      description: newService.description,
-      image: "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?ixlib=rb-4.0.3",
-    };
-    
-    setServices([...services, serviceToAdd]);
-    Alert.alert('Success', 'Service added successfully!');
-    setShowAddService(false);
-    setNewService({ name: '', price: '', description: '' });
+
+    try {
+      const serviceToAdd = {
+        task: newService.task,
+        service: shopInfo.service,
+        price: newService.price,
+        discountedPrice: newService.discountedPrice,
+        description: newService.description,
+        image: userImage,
+        providerId: userId,
+        providerName: userName,
+      };
+
+      await add("providerServices", serviceToAdd, false);
+      
+      fetchServices()
+
+      Alert.alert("Success", "Service added successfully!");
+      setShowAddService(false);
+      setNewService({ name: null, price: null, description: null });
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   const handleEditService = (service) => {
-    const serviceToEdit = {
+    setEditingService({
       ...service,
-      price: service.price.replace('₱', '')
-    };
-    setEditingService(serviceToEdit);
+      price: service.price + "",
+      discountedPrice: service.discountedPrice + "",
+    });
     setShowEditService(true);
   };
 
-  const handleUpdateService = () => {
+  const handleUpdateService = async () => {
     if (!editingService) {
       return;
     }
 
-    if (!editingService.name || !editingService.price || !editingService.description) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (
+      !editingService.task ||
+      !editingService.price ||
+      !editingService.discountedPrice ||
+      !editingService.description
+    ) {
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
     const updatedService = {
-      ...editingService,
-      price: editingService.price.startsWith('₱') ? editingService.price : `₱${editingService.price}`
+      task: newService.task,
+      price: newService.price,
+      discountedPrice: newService.discountedPrice,
+      description: newService.description,
     };
 
-    setServices(services.map(service => 
-      service.id === editingService.id ? updatedService : service
-    ));
-    
-    Alert.alert('Success', 'Service updated successfully!');
+    await update("providerServices", editingService.id, updatedService, false);
+
+    fetchServices()
+
+    Alert.alert("Success", "Service updated successfully!");
     setShowEditService(false);
     setEditingService(null);
   };
 
   const handleDeleteService = (serviceId) => {
     Alert.alert(
-      'Delete Service',
-      'Are you sure you want to delete this service?',
+      "Delete Service",
+      "Are you sure you want to delete this service?",
       [
         {
-          text: 'Cancel',
-          style: 'cancel',
+          text: "Cancel",
+          style: "cancel",
         },
         {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setServices(services.filter(service => service.id !== serviceId));
-            Alert.alert('Success', 'Service deleted successfully!');
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            await remove("providerServices", serviceId, false)
+            fetchServices()
+            Alert.alert("Success", "Service deleted successfully!");
           },
         },
       ]
@@ -245,7 +279,7 @@ const ViewShopScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -258,27 +292,29 @@ const ViewShopScreen = ({ navigation }) => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Shop Banner with Edit Button */}
         <View style={styles.bannerContainer}>
-          <Image
-            source={{ uri: shopInfo.image }}
-            style={styles.shopBanner}
-          />
-          <TouchableOpacity 
+          <Image source={{ uri: userImage }} style={styles.shopBanner} />
+          <TouchableOpacity
             style={styles.editBannerButton}
-            onPress={handleBannerImageSelect}
+            onPress={updateProfileImage}
           >
-            <Icon name="camera" size={20} color="#FFFFFF" style={styles.cameraIcon} />
+            <Icon
+              name="camera"
+              size={20}
+              color="#FFFFFF"
+              style={styles.cameraIcon}
+            />
             <Text style={styles.editBannerText}>Change Shop Photo</Text>
           </TouchableOpacity>
         </View>
 
         {/* Shop Info */}
         <View style={styles.shopInfoContainer}>
-          <Text style={styles.shopName}>{shopInfo.name}</Text>
-          
+          <Text style={styles.shopName}>{userName}</Text>
+
           <View style={styles.ratingContainer}>
             <Icon name="star" size={20} color="#FFB800" />
-            <Text style={styles.ratingText}>{shopInfo.rating}</Text>
-            <Text style={styles.reviewCount}>({shopInfo.reviews} reviews)</Text>
+            <Text style={styles.ratingText}>4.1</Text>
+            <Text style={styles.reviewCount}>(100 reviews)</Text>
           </View>
 
           <Text style={styles.description}>{shopInfo.description}</Text>
@@ -287,11 +323,11 @@ const ViewShopScreen = ({ navigation }) => {
           <View style={styles.contactInfo}>
             <View style={styles.contactItem}>
               <Icon name="email" size={20} color="#666" />
-              <Text style={styles.contactText}>{shopInfo.email}</Text>
+              <Text style={styles.contactText}>{userEmail}</Text>
             </View>
             <View style={styles.contactItem}>
               <Icon name="phone" size={20} color="#666" />
-              <Text style={styles.contactText}>{shopInfo.phone}</Text>
+              <Text style={styles.contactText}>{shopInfo.phoneNumber}</Text>
             </View>
             <View style={styles.contactItem}>
               <Icon name="map-marker" size={20} color="#666" />
@@ -302,30 +338,40 @@ const ViewShopScreen = ({ navigation }) => {
 
         {/* Tabs */}
         <View style={styles.tabContainer}>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'services' && styles.activeTab]}
-            onPress={() => setActiveTab('services')}
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "services" && styles.activeTab]}
+            onPress={() => setActiveTab("services")}
           >
-            <Text style={[styles.tabText, activeTab === 'services' && styles.activeTabText]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "services" && styles.activeTabText,
+              ]}
+            >
               Our Services
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'reviews' && styles.activeTab]}
-            onPress={() => setActiveTab('reviews')}
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "reviews" && styles.activeTab]}
+            onPress={() => setActiveTab("reviews")}
           >
-            <Text style={[styles.tabText, activeTab === 'reviews' && styles.activeTabText]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "reviews" && styles.activeTabText,
+              ]}
+            >
               Reviews
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Services Tab Content */}
-        {activeTab === 'services' && (
+        {activeTab === "services" && (
           <View style={styles.servicesSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Our Services</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.addButton}
                 onPress={() => setShowAddService(true)}
               >
@@ -338,24 +384,26 @@ const ViewShopScreen = ({ navigation }) => {
               {services.map((service) => (
                 <View key={service.id} style={styles.serviceCard}>
                   <Image
-                    source={{ uri: service.image }}
+                    source={{
+                      uri: userImage,
+                    }}
                     style={styles.serviceImage}
                   />
                   <View style={styles.serviceInfo}>
-                    <Text style={styles.serviceName}>{service.name}</Text>
-                    <Text style={styles.servicePrice}>{service.price}</Text>
+                    <Text style={styles.serviceName}>{service.task}</Text>
+                    <Text style={styles.servicePrice}>₱{service.price}</Text>
                     <Text style={styles.serviceDescription} numberOfLines={2}>
                       {service.description}
                     </Text>
                   </View>
                   <View style={styles.serviceActions}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.actionButton}
                       onPress={() => handleEditService(service)}
                     >
                       <Icon name="pencil" size={20} color="#FFB800" />
                     </TouchableOpacity>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.actionButton, styles.deleteButton]}
                       onPress={() => handleDeleteService(service.id)}
                     >
@@ -372,7 +420,7 @@ const ViewShopScreen = ({ navigation }) => {
         )}
 
         {/* Reviews Tab Content */}
-        {activeTab === 'reviews' && (
+        {activeTab === "reviews" && (
           <View style={styles.reviewsSection}>
             {reviews.map((review) => (
               <ReviewCard key={review.id} review={review} />
@@ -382,19 +430,17 @@ const ViewShopScreen = ({ navigation }) => {
       </ScrollView>
 
       {/* Add Service Modal */}
-      <Modal
-        visible={showAddService}
-        animationType="slide"
-        transparent={true}
-      >
+      <Modal visible={showAddService} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add New Service</Text>
-              <TouchableOpacity onPress={() => {
-                setShowAddService(false);
-                setNewService({ name: '', price: '', description: '' });
-              }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowAddService(false);
+                  setNewService({ name: "", price: "", description: "" });
+                }}
+              >
                 <Icon name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
@@ -402,26 +448,41 @@ const ViewShopScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="Service Name"
-              value={newService.name}
-              onChangeText={(text) => setNewService({...newService, name: text})}
+              value={newService.task}
+              onChangeText={(text) =>
+                setNewService({ ...newService, task: text })
+              }
             />
             <TextInput
               style={styles.input}
               placeholder="Price (₱)"
               value={newService.price}
-              onChangeText={(text) => setNewService({...newService, price: text})}
+              onChangeText={(text) =>
+                setNewService({ ...newService, price: text })
+              }
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Discounted Price (₱)"
+              value={newService.discountedPrice}
+              onChangeText={(text) =>
+                setNewService({ ...newService, discountedPrice: text })
+              }
               keyboardType="numeric"
             />
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Description"
               value={newService.description}
-              onChangeText={(text) => setNewService({...newService, description: text})}
+              onChangeText={(text) =>
+                setNewService({ ...newService, description: text })
+              }
               multiline
               numberOfLines={4}
             />
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.addServiceButton}
               onPress={handleAddService}
             >
@@ -432,11 +493,7 @@ const ViewShopScreen = ({ navigation }) => {
       </Modal>
 
       {/* Edit Service Modal */}
-      <Modal
-        visible={showEditService}
-        animationType="slide"
-        transparent={true}
-      >
+      <Modal visible={showEditService} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -449,26 +506,41 @@ const ViewShopScreen = ({ navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="Service Name"
-              value={editingService?.name}
-              onChangeText={(text) => setEditingService({...editingService, name: text})}
+              value={editingService?.task}
+              onChangeText={(text) =>
+                setEditingService({ ...editingService, name: text })
+              }
             />
             <TextInput
               style={styles.input}
               placeholder="Price"
-              value={editingService?.price?.replace('₱', '')}
-              onChangeText={(text) => setEditingService({...editingService, price: text})}
+              value={editingService?.price}
+              onChangeText={(text) =>
+                setEditingService({ ...editingService, price: text })
+              }
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Discounted Price"
+              value={editingService?.discountedPrice}
+              onChangeText={(text) =>
+                setEditingService({ ...editingService, discountedPrice: text })
+              }
               keyboardType="numeric"
             />
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Description"
               value={editingService?.description}
-              onChangeText={(text) => setEditingService({...editingService, description: text})}
+              onChangeText={(text) =>
+                setEditingService({ ...editingService, description: text })
+              }
               multiline
               numberOfLines={4}
             />
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.addServiceButton}
               onPress={handleUpdateService}
             >
@@ -481,46 +553,45 @@ const ViewShopScreen = ({ navigation }) => {
   );
 };
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: "#EEEEEE",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#333333',
+    fontWeight: "700",
+    color: "#333333",
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
   },
   bannerContainer: {
-    position: 'relative',
-    width: '100%',
+    position: "relative",
+    width: "100%",
     height: 200,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
   },
   shopBanner: {
-    width: '100%',
+    width: "100%",
     height: 200,
-    resizeMode: 'cover',
+    resizeMode: "cover",
   },
   editBannerButton: {
-    position: 'absolute',
+    position: "absolute",
     left: 16,
     bottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,
@@ -529,155 +600,155 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   editBannerText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   shopInfoContainer: {
     padding: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   shopName: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#333333',
+    fontWeight: "700",
+    color: "#333333",
     marginBottom: 8,
   },
   ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
   ratingText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
+    fontWeight: "600",
+    color: "#333333",
     marginLeft: 4,
     marginRight: 4,
   },
   reviewCount: {
     fontSize: 14,
-    color: '#666666',
+    color: "#666666",
   },
   description: {
     fontSize: 15,
-    color: '#666666',
+    color: "#666666",
     lineHeight: 22,
     marginBottom: 16,
   },
   contactInfo: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
     padding: 16,
     borderRadius: 12,
   },
   contactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
   contactText: {
     fontSize: 14,
-    color: '#666666',
+    color: "#666666",
     marginLeft: 12,
     flex: 1,
   },
   tabContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    borderBottomColor: "#EEEEEE",
     marginBottom: 16,
   },
   tab: {
     flex: 1,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#FFB800',
+    borderBottomColor: "#FFB800",
   },
   tabText: {
     fontSize: 16,
-    color: '#666666',
-    fontWeight: '500',
+    color: "#666666",
+    fontWeight: "500",
   },
   activeTabText: {
-    color: '#FFB800',
-    fontWeight: '600',
+    color: "#FFB800",
+    fontWeight: "600",
   },
   servicesSection: {
     padding: 20,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#333333',
+    fontWeight: "700",
+    color: "#333333",
   },
   addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF9E6',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF9E6",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
   addButtonText: {
     fontSize: 14,
-    color: '#FFB800',
-    fontWeight: '600',
+    color: "#FFB800",
+    fontWeight: "600",
     marginLeft: 4,
   },
   servicesGrid: {
     gap: 16,
   },
   serviceCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: 16,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   serviceImage: {
-    width: '100%',
+    width: "100%",
     height: 150,
-    resizeMode: 'cover',
+    resizeMode: "cover",
   },
   serviceInfo: {
     padding: 16,
   },
   serviceName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
+    fontWeight: "600",
+    color: "#333333",
     marginBottom: 4,
   },
   servicePrice: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#FFB800',
+    fontWeight: "700",
+    color: "#FFB800",
     marginBottom: 8,
   },
   serviceDescription: {
     fontSize: 14,
-    color: '#666666',
+    color: "#666666",
     lineHeight: 20,
   },
   serviceActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     padding: 8,
     borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
+    borderTopColor: "#EEEEEE",
   },
   actionButton: {
     padding: 8,
@@ -687,34 +758,34 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   viewButton: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
     padding: 12,
-    alignItems: 'center',
+    alignItems: "center",
     borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
+    borderTopColor: "#EEEEEE",
   },
   viewButtonText: {
     fontSize: 14,
-    color: '#FFB800',
-    fontWeight: '600',
+    color: "#FFB800",
+    fontWeight: "600",
   },
   reviewsSection: {
     padding: 20,
   },
   reviewCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
   reviewerAvatar: {
@@ -728,44 +799,44 @@ const styles = StyleSheet.create({
   },
   reviewerName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
+    fontWeight: "600",
+    color: "#333333",
     marginBottom: 4,
   },
   reviewDate: {
     fontSize: 12,
-    color: '#666666',
+    color: "#666666",
   },
   reviewComment: {
     fontSize: 14,
-    color: '#666666',
+    color: "#666666",
     lineHeight: 20,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: "80%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#333333',
+    fontWeight: "700",
+    color: "#333333",
   },
   input: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: "#F8F9FA",
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
@@ -773,19 +844,19 @@ const styles = StyleSheet.create({
   },
   textArea: {
     height: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   addServiceButton: {
-    backgroundColor: '#FFB800',
+    backgroundColor: "#FFB800",
     padding: 16,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   addServiceButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

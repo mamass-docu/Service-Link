@@ -76,7 +76,7 @@ const BookServiceScreen = ({ route, navigation }) => {
         providerName: provider.providerName,
         customerId: userId,
         customerName: userName,
-        serviceId: provider.serviceId,
+        // serviceId: provider.serviceId,
         service: provider.service,
         task: provider.task,
         price: provider.price,

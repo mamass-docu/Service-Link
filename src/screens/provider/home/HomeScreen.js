@@ -96,6 +96,8 @@ const HomeScreen = () => {
   const navigation = useNavigation();
   const { userName, userId, userImage } = useAppContext();
   const [totalCompleted, setTotalCompleted] = useState(0);
+  const [totalActive, setTotalActive] = useState(0);
+  const [totalTodaysEarnings, setTotalTodaysEarnings] = useState(0);
   const [upcomingJobs, setUpcomingJobs] = useState([]);
 
   useFocusEffect(
@@ -110,7 +112,7 @@ const HomeScreen = () => {
         "bookings",
         false,
         where("providerId", "==", userId),
-        where("status", "==", "Pending")
+        // where("status", "==", "Pending")
       );
       // const snapshot = await getDocs(
       //   query(
@@ -120,16 +122,40 @@ const HomeScreen = () => {
       //   )
       // );
       let temp = [];
+      let totalA = 0, totalE= 0, totalC=0;
+      const currentMonth = new Date().getMonth() + 1
       for (let i in snapshot.docs) {
         const d = snapshot.docs[i].data();
+
+        if (d.status == "Declined"){
+          continue
+        }
+
+        if (parseInt(d.createdAt.split("-")[1]) == currentMonth){
+          totalE += parseInt(d.price)
+        }
+
+        if (d.status == "Completed"){
+          totalC++;
+          continue
+        }
+
+        if (d.status != "Pending"){
+          totalA++;
+          continue
+        }
+
         const usersnap = await find("users", d.customerId, false);
-        console.log(usersnap.data());
+        
         temp.push({
           id: usersnap.id,
           ...d,
           customerImage: usersnap.exists() ? usersnap.data().image : null,
         });
       }
+      setTotalActive(totalA)
+      setTotalCompleted(totalC)
+      setTotalTodaysEarnings(totalE)
       setUpcomingJobs(temp);
       // setUpcomingJobs(
       //   snapshot.docs.map(async (item) => {
@@ -288,7 +314,7 @@ const HomeScreen = () => {
           <Icon name="cash" size={24} color="#FFB800" />
           <Text style={styles.serviceCardTitle}>Today's Earnings</Text>
           <Text style={styles.serviceCardCount}>
-            ₱{providerStats.totalEarnings}
+            ₱{totalTodaysEarnings}
           </Text>
         </View>
         <View style={styles.serviceCard}>
@@ -300,7 +326,7 @@ const HomeScreen = () => {
           <Icon name="calendar-clock" size={24} color="#FFB800" />
           <Text style={styles.serviceCardTitle}>Active Jobs</Text>
           <Text style={styles.serviceCardCount}>
-            {providerStats.activeJobs}
+            {totalActive}
           </Text>
         </View>
       </View>

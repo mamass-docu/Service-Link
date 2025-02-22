@@ -21,7 +21,7 @@
     "@react-navigation/native-stack": "^7.2.0",
     "@reduxjs/toolkit": "^2.5.1",
     "axios": "^1.7.9",
-    "expo": "^52.0.36",
+    "expo": "^52.0.37",
     "expo-image-picker": "~16.0.6",
     "expo-location": "^18.0.7",
     "expo-status-bar": "~2.0.1",
@@ -39,8 +39,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "typescript": "^5.3.3",
-    "@types/react": "~18.3.12"
+    "@types/react": "~18.3.12",
+    "typescript": "^5.3.3"
   },
   "private": true
 }

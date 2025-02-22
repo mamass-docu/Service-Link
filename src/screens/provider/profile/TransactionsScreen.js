@@ -8,7 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  FlatList,
+  // FlatList,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -104,6 +104,10 @@ const TransactionScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       callback();
+
+      // return () => {
+      //   setTransactions([])
+      // }
     }, [])
   );
 
@@ -139,7 +143,8 @@ const TransactionScreen = ({ navigation }) => {
         navigation.navigate("TransactionDetail", { transaction: item })
       }
     >
-      <View style={styles.transactionHeader}>
+      <View style={styles.transactionHeader} 
+      key={item.id}>
         <View style={styles.customerInfo}>
           <Text style={styles.customerName}>{item.customerName}</Text>
           <Text style={styles.transactionDate}>
@@ -222,7 +227,21 @@ const TransactionScreen = ({ navigation }) => {
       </View>
 
       {/* Transactions List */}
-      <FlatList
+      <ScrollView
+        contentContainerStyle={styles.transactionsList}
+        showsVerticalScrollIndicator={false}>
+      {
+        transactions.map(item => (selectedFilter == "month" && !isSameMonth(item.date)) ||
+        (selectedFilter != "All" &&
+          selectedFilter != "month" &&
+          selectedFilter != item.status) ? (
+          <></>
+        ) : (
+          <TransactionCard item={item} />
+        ))
+      }
+      </ScrollView>
+      {/* <FlatList
         data={transactions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) =>
@@ -237,7 +256,7 @@ const TransactionScreen = ({ navigation }) => {
         }
         contentContainerStyle={styles.transactionsList}
         showsVerticalScrollIndicator={false}
-      />
+      /> */}
     </SafeAreaView>
   );
 };

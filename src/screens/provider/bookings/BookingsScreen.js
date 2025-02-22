@@ -5,8 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
-  FlatList,
+  // FlatList,
   Alert,
+  ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useAppContext } from "../../../../AppProvider";
@@ -65,7 +66,7 @@ const BookingCard = ({
       })
     }
   >
-    <View style={styles.bookingCardTop}>
+    <View key={booking.id} style={styles.bookingCardTop}>
       <View style={styles.customerInfo}>
         <Text style={styles.customerName}>{booking.customerName}</Text>
         <Text style={styles.serviceType}>{booking.service}</Text>
@@ -285,7 +286,20 @@ const BookingsScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
+      <ScrollView
+        contentContainerStyle={styles.bookingList}
+        >
+          {filteredBookings().map(item => <BookingCard
+            booking={item}
+            onAccept={handleAccept}
+            onDecline={handleDecline}
+            navigation={navigation}
+            userRole={userRole}
+          />)}
+        </ScrollView>
+
+
+      {/* <FlatList
         data={filteredBookings()}
         renderItem={({ item }) => (
           <BookingCard
@@ -298,7 +312,7 @@ const BookingsScreen = ({ navigation }) => {
         )}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.bookingList}
-      />
+      /> */}
     </View>
   );
 };
