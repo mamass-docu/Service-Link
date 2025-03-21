@@ -67,6 +67,10 @@ const BookServiceScreen = ({ route, navigation }) => {
       // find("settings", provider.providerId).then((snap) => {
       //   if (snap.exists()) setAllowNotif(snap.data().bookings);
       // });
+      const bsnap = await find("providerBusinessHours", provider.providerId);
+      if (bsnap.exists())
+        setSched(bsnap.data());
+      
       const snap = await find("users", userId);
       if (!snap.exists() || !snap.data().addresses) return;
 
@@ -79,10 +83,6 @@ const BookServiceScreen = ({ route, navigation }) => {
           };
         })
       );
-
-      const bsnap = await find("providerBusinessHours", provider.providerId);
-      if (!bsnap.exists()) return;
-      setSched(bsnap.data());
     });
 
     return () => {
