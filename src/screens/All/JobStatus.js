@@ -8,6 +8,7 @@ import {
   StatusBar,
   Alert,
   ScrollView,
+  Linking,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useAppContext } from "../../../AppProvider";
@@ -145,6 +146,7 @@ const JobStatusScreen = ({ route, navigation }) => {
               userRole == "Provider"
                 ? booking.customerName
                 : booking.providerName,
+            phoneNumber: userSnap.exists() ? userSnap.data().phoneNumber : "",
             image: userSnap.exists() ? userSnap.data().image : null,
             date: booking.date,
             time: booking.time,
@@ -338,7 +340,7 @@ const JobStatusScreen = ({ route, navigation }) => {
           borderRadius: 8,
           alignItems: "center",
           backgroundColor: "#F44336",
-          marginBottom: 10,
+          marginTop: 5,
         }}
         onPress={handleCancel}
       >
@@ -363,6 +365,7 @@ const JobStatusScreen = ({ route, navigation }) => {
               flexDirection: "row",
               flex: 1,
               justifyContent: "space-between",
+              marginTop: 5,
               marginHorizontal: 16,
               gap: 10,
             }}
@@ -498,7 +501,10 @@ const JobStatusScreen = ({ route, navigation }) => {
           </View>
 
           <View style={styles.contactButtons}>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity
+              onPress={() => Linking.openURL("tel:" + user?.phoneNumber)}
+              style={styles.iconButton}
+            >
               <Icon name="phone" size={20} color="#6C3EE9" />
             </TouchableOpacity>
             <TouchableOpacity onPress={onMessage} style={styles.iconButton}>
@@ -573,7 +579,7 @@ const JobStatusScreen = ({ route, navigation }) => {
             style={{
               backgroundColor: "#02ccfe",
               flexDirection: "row",
-              marginTop: 10,
+              // marginTop: 5,
               alignItems: "center",
               justifyContent: "center",
               padding: 16,
@@ -606,7 +612,7 @@ const JobStatusScreen = ({ route, navigation }) => {
             style={{
               backgroundColor: "#4CAF50",
               flexDirection: "row",
-              marginTop: 10,
+              marginTop: 5,
               alignItems: "center",
               justifyContent: "center",
               padding: 16,
@@ -788,6 +794,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 16,
+    marginTop: 5,
     marginHorizontal: 16,
     borderRadius: 8,
     gap: 8,

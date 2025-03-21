@@ -66,7 +66,7 @@ const SupportSection = memo(({ section }) => (
 
 const ProviderHelpSupportScreen = ({ navigation }) => {
   // Handle external links
-  const handleLinking = useCallback(async (url) => {
+  const handleLinking = async (url) => {
     try {
       const supported = await Linking.canOpenURL(url);
       if (supported) {
@@ -77,7 +77,7 @@ const ProviderHelpSupportScreen = ({ navigation }) => {
     } catch (error) {
       Alert.alert("Error", "An error occurred while opening the link");
     }
-  }, []);
+  };
 
   // Navigation handler
   const handleNavigation = useCallback(
